@@ -51,6 +51,7 @@ gh owner/repo @branch  open a branch
 gh owner/repo *commit  open a commit
 gh owner/repo issues | pulls | actions | admin | clone |
                discussions | milestones | releases
+gh > orgs              edit the list of organizations
 gh >                   global commands (login, logout, update, ...)
 ```
 
@@ -60,9 +61,10 @@ repositories with `gh > hidden`, where <kbd>⏎</kbd> unhides.
 
 ## Configuration
 
-The default organizations are `grigoriev`, `intechcore`, and
-`SchweizerischeBundesbahnen`. Override them by writing one org per line to
-`<workflow data>/orgs`. Hidden repositories are stored in `<workflow data>/hidden`.
+Set the organizations with `gh > orgs`. It opens `<workflow data>/orgs` in a text
+editor. Write one organization or user per line; `#` lines are ignored. The list
+starts empty, so add your own. Hidden repositories are stored in
+`<workflow data>/hidden`.
 
 ## Caching
 
