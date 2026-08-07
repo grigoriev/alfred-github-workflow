@@ -4,6 +4,7 @@
 . src/media.sh
 . src/config.sh
 . src/database.sh
+. src/cache.sh
 
 # Single entry point behind the "gh" keyword. Called two ways from Alfred:
 #   list mode (Script Filter): . src/gh.sh list "{query}"
@@ -51,6 +52,65 @@ repo_picker() {
   return 0
 }
 
+# Fetch a repo sub-resource through the API (cached) and print filtered items.
+# $1 repo  $2 filter  $3 cache slug  $4 api path  $5 ttl  $6 jq file  $7 icon
+list_resource() {
+  local repo="$1" filter="$2" slug="$3" apipath="$4" ttl="$5" jqfile="$6" icon="$7"
+  local key data
+  key="${slug}_$(printf '%s' "$repo" | tr '/' '_').json"
+  if ! cache_fresh "$key" "$ttl"; then
+    data="$(gh_api "$apipath")"
+    [[ -n "$data" ]] && printf '%s' "$data" | cache_set "$key"
+  fi
+  data="$(cache_get "$key")"
+  [[ -n "$data" ]] || data="[]"
+  jq -c -f "$jqfile" --arg q "$filter" --arg repo "$repo" --arg icon "$icon" <<< "$data"
+  return 0
+}
+
+# List open issues and pull requests, filtered by number or title.
+list_issues() {
+  local repo="$1" filter="$2" items
+  items="$(list_resource "$repo" "$filter" issues "repos/$repo/issues?state=open&per_page=50" 60 src/format-issues.jq "$ICON_ISSUE")"
+  if [[ "$items" != "[]" ]]; then
+    printf '{"items":%s}\n' "$items"
+    return 0
+  fi
+  if [[ "$filter" =~ ^[0-9]+$ ]]; then
+    add_result "" "open https://github.com/$repo/issues/$filter" "Open #$filter" "Open by number" "$ICON_ISSUE" "yes"
+  else
+    add_result "" "" "No open issues or pull requests" "Type a number to open one" "$ICON_ISSUE" "no"
+  fi
+  get_json_results
+  return 0
+}
+
+# List branches, filtered by name.
+list_branches() {
+  local repo="$1" filter="$2" items
+  items="$(list_resource "$repo" "$filter" branches "repos/$repo/branches?per_page=100" 120 src/format-branches.jq "$ICON_BRANCH")"
+  if [[ "$items" != "[]" ]]; then
+    printf '{"items":%s}\n' "$items"
+    return 0
+  fi
+  add_result "" "" "No branches found" "Type a branch name" "$ICON_BRANCH" "no"
+  get_json_results
+  return 0
+}
+
+# List recent commits, filtered by sha or message.
+list_commits() {
+  local repo="$1" filter="$2" items
+  items="$(list_resource "$repo" "$filter" commits "repos/$repo/commits?per_page=30" 120 src/format-commits.jq "$ICON_COMMIT")"
+  if [[ "$items" != "[]" ]]; then
+    printf '{"items":%s}\n' "$items"
+    return 0
+  fi
+  add_result "" "" "No commits found" "Type a sha or message" "$ICON_COMMIT" "no"
+  get_json_results
+  return 0
+}
+
 # Queue a repo-section item when its name matches the filter prefix.
 # $1 name  $2 filter  $3 title  $4 subtitle  $5 arg  $6 icon
 section_item() {
@@ -86,39 +146,11 @@ repo_menu() {
 
 # A repository is selected: dispatch its subquery to a section or direct target.
 repo_scoped() {
-  local repo="$1" rest="$2" base target
-  base="https://github.com/$repo"
+  local repo="$1" rest="$2"
   case "$rest" in
-    "#"*)
-      target="${rest#\#}"
-      if [[ -n "$target" ]]; then
-        add_result "" "open $base/issues/$target" "Open #$target" "Issue or pull request $target" "$ICON_ISSUE" "yes"
-      else
-        add_result "" "" "Issue or pull request" "Type a number, e.g. 123" "$ICON_ISSUE" "no"
-      fi
-      get_json_results
-      return 0
-      ;;
-    "@"*)
-      target="${rest#@}"
-      if [[ -n "$target" ]]; then
-        add_result "" "open $base/tree/$target" "Open branch $target" "Browse the $target branch" "$ICON_BRANCH" "yes"
-      else
-        add_result "" "" "Branch" "Type a branch name" "$ICON_BRANCH" "no"
-      fi
-      get_json_results
-      return 0
-      ;;
-    "*"*)
-      target="${rest#\*}"
-      if [[ -n "$target" ]]; then
-        add_result "" "open $base/commit/$target" "Open commit $target" "View the commit" "$ICON_COMMIT" "yes"
-      else
-        add_result "" "" "Commit" "Type a commit sha" "$ICON_COMMIT" "no"
-      fi
-      get_json_results
-      return 0
-      ;;
+    "#"*) list_issues "$repo" "${rest#\#}"; return 0 ;;
+    "@"*) list_branches "$repo" "${rest#@}"; return 0 ;;
+    "*"*) list_commits "$repo" "${rest#\*}"; return 0 ;;
     *) ;;
   esac
   repo_menu "$repo" "$rest"

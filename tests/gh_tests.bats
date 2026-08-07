@@ -5,6 +5,7 @@
 setup() {
   export PATH="$BATS_TEST_DIRNAME/mocks/bin:$PATH"
   export alfred_workflow_data="$BATS_TEST_TMPDIR/data"
+  export alfred_workflow_cache="$BATS_TEST_TMPDIR/cache"
   mkdir -p "$alfred_workflow_data"
   printf 'testorg\n' > "$alfred_workflow_data/orgs"
 }
@@ -87,7 +88,42 @@ setup() {
   echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/tree/main"' >/dev/null
 }
 
-@test "gh.sh: *commit opens the commit url" {
-  run bash -c '. src/gh.sh list "testorg/alpha *abc123"'
-  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/commit/abc123"' >/dev/null
+@test "gh.sh: # lists open issues and pull requests" {
+  run bash -c '. src/gh.sh list "testorg/alpha #"'
+  echo "$output" | jq -e '[.items[].title] == ["#1 First issue", "#2 Fix things"]' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="#2 Fix things") | .subtitle == "Pull request"' >/dev/null
+}
+
+@test "gh.sh: # filters issues and links to the issue url" {
+  run bash -c '. src/gh.sh list "testorg/alpha #1"'
+  echo "$output" | jq -e '[.items[].title] == ["#1 First issue"]' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/issues/1"' >/dev/null
+  echo "$output" | jq -e '.items[0].autocomplete == "testorg/alpha #1"' >/dev/null
+}
+
+@test "gh.sh: # with an unknown number offers a direct open" {
+  run bash -c '. src/gh.sh list "testorg/alpha #999"'
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/issues/999"' >/dev/null
+}
+
+@test "gh.sh: @ lists branches" {
+  run bash -c '. src/gh.sh list "testorg/alpha @"'
+  echo "$output" | jq -e '[.items[].title] == ["main", "develop"]' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/tree/main"' >/dev/null
+}
+
+@test "gh.sh: @ filters branches" {
+  run bash -c '. src/gh.sh list "testorg/alpha @dev"'
+  echo "$output" | jq -e '[.items[].title] == ["develop"]' >/dev/null
+}
+
+@test "gh.sh: * lists commits with short shas" {
+  run bash -c '. src/gh.sh list "testorg/alpha *"'
+  echo "$output" | jq -e '.items[0].title == "abc1234 first commit"' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/commit/abc1234def5678"' >/dev/null
+}
+
+@test "gh.sh: caches api responses" {
+  run bash -c '. src/gh.sh list "testorg/alpha #"'
+  [ -f "$alfred_workflow_cache/issues_testorg_alpha.json" ]
 }

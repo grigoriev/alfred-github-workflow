@@ -17,6 +17,29 @@ JSON
         ;;
     esac
     ;;
+  api)
+    # api <path>
+    case "$2" in
+      *"/issues"*)
+        cat <<'JSON'
+[{"number":1,"title":"First issue"},{"number":2,"title":"Fix things","pull_request":{"url":"x"}}]
+JSON
+        ;;
+      *"/branches"*)
+        cat <<'JSON'
+[{"name":"main"},{"name":"develop"}]
+JSON
+        ;;
+      *"/commits"*)
+        cat <<'JSON'
+[{"sha":"abc1234def5678","commit":{"message":"first commit\n\ndetails"}},{"sha":"beef567890abcd","commit":{"message":"second commit"}}]
+JSON
+        ;;
+      *)
+        printf '[]'
+        ;;
+    esac
+    ;;
   *)
     exit 0
     ;;

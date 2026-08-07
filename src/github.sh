@@ -30,6 +30,15 @@ gh_authed() {
   return $?
 }
 
+# Call the GitHub REST API through gh. Prints the raw response, empty on failure.
+gh_api() {
+  local gh
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || return 0
+  "$gh" api "$@" 2>/dev/null
+  return 0
+}
+
 # Print an org's repositories as a JSON array. Empty array on any failure.
 gh_repo_list() {
   local org="$1" gh
