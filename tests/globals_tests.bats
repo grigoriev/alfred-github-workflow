@@ -85,6 +85,41 @@ STUB
   grep -q 'install \[https://example.com/GitHub.alfredworkflow\]' "$INSTALL_LOG"
 }
 
+@test "gh.sh: autoupdate records a pending update and shows a banner" {
+  : > "$alfred_workflow_data/autoupdate"
+  cat > src/update.sh <<'STUB'
+#!/bin/bash
+printf '{"items":[{"title":"Update to v9.9.9","arg":"https://example.com/GitHub.alfredworkflow"}]}'
+STUB
+  run bash -c '. src/gh.sh list ""'
+  rm -f src/update.sh
+  [ -f "$alfred_workflow_data/update-available" ]
+  echo "$output" | jq -e '.items[0].title == "Update available"' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "https://example.com/GitHub.alfredworkflow"' >/dev/null
+}
+
+@test "gh.sh: autoupdate disabled does not check" {
+  cat > src/update.sh <<'STUB'
+#!/bin/bash
+printf '{"items":[{"title":"Update to v9","arg":"https://x/y"}]}'
+STUB
+  run bash -c '. src/gh.sh list ""'
+  rm -f src/update.sh
+  [ ! -f "$alfred_workflow_data/update-available" ]
+}
+
+@test "gh.sh: autoupdate is throttled within a day" {
+  : > "$alfred_workflow_data/autoupdate"
+  : > "$alfred_workflow_data/autoupdate-checked"
+  cat > src/update.sh <<'STUB'
+#!/bin/bash
+printf '{"items":[{"title":"Update to v9","arg":"https://x/y"}]}'
+STUB
+  run bash -c '. src/gh.sh list ""'
+  rm -f src/update.sh
+  [ ! -f "$alfred_workflow_data/update-available" ]
+}
+
 @test "gh.sh: autoupdate toggles and the menu reflects it" {
   run bash -c '. src/gh.sh list ">"'
   echo "$output" | jq -e '[.items[].title] | index("Activate autoupdate") != null' >/dev/null
