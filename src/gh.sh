@@ -5,6 +5,7 @@
 . src/config.sh
 . src/database.sh
 . src/cache.sh
+. src/globals.sh
 
 # Single entry point behind the "gh" keyword. Called two ways from Alfred:
 #   list mode (Script Filter): . src/gh.sh list "{query}"
@@ -165,13 +166,31 @@ if [[ "$mode" == "run" ]]; then
   case "$action" in
     open) open "$payload" ;;
     copy) printf '%s' "$payload" | pbcopy ;;
+    auth) run_auth "$payload" ;;
+    delete) run_delete "$payload" ;;
+    autoupdate) set_autoupdate "$payload" ;;
+    http://*|https://*) [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) ;;
   esac
   exit
 fi
 
 # List mode
-if [[ "$query" == *" "* ]] && [[ "${query%% *}" == */?* ]]; then
+if [[ "$query" == ">"* ]]; then
+  # global commands
+  sub="${query#>}"
+  sub="${sub# }"
+  if [[ "$sub" == update* ]]; then
+    if [[ -f src/update.sh ]]; then
+      . src/update.sh ""
+    else
+      add_result "" "" "Updater unavailable" "Rebuild the workflow bundle" "$ICON_UPDATE" "no"
+      get_json_results
+    fi
+  else
+    globals_menu "$sub"
+  fi
+elif [[ "$query" == *" "* ]] && [[ "${query%% *}" == */?* ]]; then
   # owner/repo <subquery> -> repo-scoped
   first="${query%% *}"
   rest="${query#"$first"}"

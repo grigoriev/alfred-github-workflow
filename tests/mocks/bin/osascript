@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mock osascript; log its arguments.
+echo "$@" >> "${OSASCRIPT_LOG:-/dev/null}"

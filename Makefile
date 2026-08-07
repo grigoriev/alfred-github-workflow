@@ -1,6 +1,6 @@
 WORKFLOW    := GitHub.alfredworkflow
 UPDATER_URL := https://github.com/grigoriev/alfred-workflow-updater/releases/latest/download/update.sh
-SCRIPTS     := src/gh.sh src/config.sh src/github.sh src/database.sh src/cache.sh
+SCRIPTS     := src/gh.sh src/config.sh src/github.sh src/database.sh src/cache.sh src/globals.sh
 EXCLUDES    := '.git/*' '.github/*' '.gitignore' 'Makefile' '$(WORKFLOW)'
 
 .PHONY: all build updater verify-updater test lint icons clean
