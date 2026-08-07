@@ -19,6 +19,24 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["Delete cache", "Delete database"]' >/dev/null
 }
 
+@test "gh.sh: the global menu lists hidden repositories" {
+  run bash -c '. src/gh.sh list ">"'
+  echo "$output" | jq -e '[.items[].title] | index("Hidden repositories") != null' >/dev/null
+}
+
+@test "gh.sh: > hidden lists hidden repos with an unhide action" {
+  mkdir -p "$alfred_workflow_data"
+  printf 'testorg/beta\n' > "$alfred_workflow_data/hidden"
+  run bash -c '. src/gh.sh list "> hidden"'
+  echo "$output" | jq -e '.items[0].title == "testorg/beta"' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "unhide testorg/beta"' >/dev/null
+}
+
+@test "gh.sh: > hidden with none shows a hint" {
+  run bash -c '. src/gh.sh list "> hidden"'
+  echo "$output" | jq -e '.items[0].title == "No hidden repositories"' >/dev/null
+}
+
 @test "gh.sh: the login item runs gh auth login" {
   run bash -c '. src/gh.sh list "> login"'
   echo "$output" | jq -e '.items[0].arg == "auth login"' >/dev/null
