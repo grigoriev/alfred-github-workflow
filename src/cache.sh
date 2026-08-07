@@ -9,10 +9,12 @@ cache_path() {
   return 0
 }
 
-# Print a file's modification time as a unix timestamp (BSD stat, then GNU).
+# Print a file's modification time as a unix timestamp. Try GNU stat first (its
+# -c is a clean failure on BSD), then BSD stat, so the ambiguous BSD -f never
+# runs on GNU where it can print filesystem info instead of failing.
 file_mtime() {
   local file="$1"
-  stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null
+  stat -c %Y "$file" 2>/dev/null || stat -f %m "$file" 2>/dev/null
   return 0
 }
 
