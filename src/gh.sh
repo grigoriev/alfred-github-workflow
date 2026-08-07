@@ -39,6 +39,13 @@ add_org_items() {
   return 0
 }
 
+# Print a Script Filter feedback object wrapping a JSON items array.
+print_items() {
+  local items="$1"
+  printf '{"items":%s}\n' "$items"
+  return 0
+}
+
 # The repository picker for "owner/partial": filter the database and print items.
 repo_picker() {
   local query="$1" repos items
@@ -49,7 +56,7 @@ repo_picker() {
     get_json_results
     return 0
   fi
-  printf '{"items":%s}\n' "$items"
+  print_items "$items"
   return 0
 }
 
@@ -74,7 +81,7 @@ list_issues() {
   local repo="$1" filter="$2" items
   items="$(list_resource "$repo" "$filter" issues "repos/$repo/issues?state=open&per_page=50" 60 src/format-issues.jq "$ICON_ISSUE")"
   if [[ "$items" != "[]" ]]; then
-    printf '{"items":%s}\n' "$items"
+    print_items "$items"
     return 0
   fi
   if [[ "$filter" =~ ^[0-9]+$ ]]; then
@@ -91,7 +98,7 @@ list_branches() {
   local repo="$1" filter="$2" items
   items="$(list_resource "$repo" "$filter" branches "repos/$repo/branches?per_page=100" 120 src/format-branches.jq "$ICON_BRANCH")"
   if [[ "$items" != "[]" ]]; then
-    printf '{"items":%s}\n' "$items"
+    print_items "$items"
     return 0
   fi
   add_result "" "" "No branches found" "Type a branch name" "$ICON_BRANCH" "no"
@@ -104,7 +111,7 @@ list_commits() {
   local repo="$1" filter="$2" items
   items="$(list_resource "$repo" "$filter" commits "repos/$repo/commits?per_page=30" 120 src/format-commits.jq "$ICON_COMMIT")"
   if [[ "$items" != "[]" ]]; then
-    printf '{"items":%s}\n' "$items"
+    print_items "$items"
     return 0
   fi
   add_result "" "" "No commits found" "Type a sha or message" "$ICON_COMMIT" "no"
