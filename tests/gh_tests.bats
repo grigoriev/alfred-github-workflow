@@ -55,3 +55,39 @@ setup() {
   run bash -c '. src/gh.sh run "copy git@github.com:testorg/alpha.git"'
   grep -q "git@github.com:testorg/alpha.git" "$PBCOPY_LOG"
 }
+
+@test "gh.sh: a selected repo shows the section menu" {
+  run bash -c '. src/gh.sh list "testorg/alpha "'
+  echo "$output" | jq -e '[.items[].title] | index("Issues") != null and index("Pull requests") != null and index("Copy clone URL") != null' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="Issues") | .arg == "open https://github.com/testorg/alpha/issues"' >/dev/null
+}
+
+@test "gh.sh: the empty repo menu offers number, branch and commit hints" {
+  run bash -c '. src/gh.sh list "testorg/alpha "'
+  echo "$output" | jq -e '[.items[].autocomplete] | index("testorg/alpha #") != null and index("testorg/alpha @") != null and index("testorg/alpha *") != null' >/dev/null
+}
+
+@test "gh.sh: a section prefix filters the menu" {
+  run bash -c '. src/gh.sh list "testorg/alpha iss"'
+  echo "$output" | jq -e '[.items[].title] == ["Issues"]' >/dev/null
+}
+
+@test "gh.sh: clone copies the clone url" {
+  run bash -c '. src/gh.sh list "testorg/alpha clone"'
+  echo "$output" | jq -e '.items[0].arg == "copy git@github.com:testorg/alpha.git"' >/dev/null
+}
+
+@test "gh.sh: #number opens the issue url" {
+  run bash -c '. src/gh.sh list "testorg/alpha #42"'
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/issues/42"' >/dev/null
+}
+
+@test "gh.sh: @branch opens the tree url" {
+  run bash -c '. src/gh.sh list "testorg/alpha @main"'
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/tree/main"' >/dev/null
+}
+
+@test "gh.sh: *commit opens the commit url" {
+  run bash -c '. src/gh.sh list "testorg/alpha *abc123"'
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha/commit/abc123"' >/dev/null
+}
