@@ -301,7 +301,7 @@ repo_scoped() {
 alfred_search() {
   osascript - "$1" <<'APPLESCRIPT'
 on run argv
-  tell application id "com.runningwithcrocodiles.alfred" to search (item 1 of argv)
+  tell application id "com.runningwithcrayons.Alfred" to search (item 1 of argv)
 end run
 APPLESCRIPT
   return 0
