@@ -176,7 +176,7 @@ if [[ "$mode" == "run" ]]; then
     auth) run_auth "$payload" ;;
     delete) run_delete "$payload" ;;
     autoupdate) set_autoupdate "$payload" ;;
-    http://*|https://*) [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
+    http://*|https://*) rm -f "$(autoupdate_pending)"; [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) : ;;
   esac
   exit
@@ -207,7 +207,11 @@ elif [[ "$query" == *"/"* ]]; then
   # owner/partial -> repo picker
   repo_picker "$query"
 else
-  # bare query -> matching orgs
+  # bare query -> matching orgs, with an optional update banner on the home view
+  if [[ -z "$query" ]]; then
+    autoupdate_refresh
+    autoupdate_banner
+  fi
   add_org_items "$query"
   get_json_results
 fi

@@ -23,6 +23,55 @@ autoupdate_enabled() {
   return 1
 }
 
+# Timestamp of the last autoupdate check.
+autoupdate_stamp() {
+  printf '%s/autoupdate-checked' "${alfred_workflow_data:-.}"
+  return 0
+}
+
+# Holds the download url of a pending update, if any.
+autoupdate_pending() {
+  printf '%s/update-available' "${alfred_workflow_data:-.}"
+  return 0
+}
+
+# Run a throttled update check (at most once a day) when autoupdate is on, and
+# record any available update for the banner.
+autoupdate_refresh() {
+  autoupdate_enabled || return 0
+  [[ -f src/update.sh ]] || return 0
+  local stamp now mtime out url
+  stamp="$(autoupdate_stamp)"
+  if [[ -f "$stamp" ]]; then
+    now="$(date +%s)"
+    mtime="$(file_mtime "$stamp")"
+    if [[ -n "$mtime" ]] && [[ $(( now - mtime )) -lt 86400 ]]; then
+      return 0
+    fi
+  fi
+  mkdir -p "${alfred_workflow_data:-.}"
+  : > "$stamp"
+  out="$(bash src/update.sh "" 2>/dev/null)"
+  url="$(printf '%s' "$out" | jq -r '.items[]?.arg // empty' 2>/dev/null | head -1)"
+  if [[ -n "$url" ]]; then
+    printf '%s' "$url" > "$(autoupdate_pending)"
+  else
+    rm -f "$(autoupdate_pending)"
+  fi
+  return 0
+}
+
+# Queue an "update available" banner when a pending update was found.
+autoupdate_banner() {
+  local file url
+  file="$(autoupdate_pending)"
+  [[ -f "$file" ]] || return 0
+  url="$(cat "$file" 2>/dev/null)"
+  [[ -n "$url" ]] || return 0
+  add_result "" "$url" "Update available" "Install the new version of this workflow" "$ICON_UPDATE" "yes"
+  return 0
+}
+
 # Queue a global command when its token contains the filter (case-insensitive).
 # $1 token  $2 filter  $3 title  $4 subtitle  $5 arg  $6 valid  $7 icon  $8 autocomplete
 global_item() {
