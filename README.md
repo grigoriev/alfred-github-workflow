@@ -45,7 +45,7 @@ profile. That shaped a few choices:
 gh                     browse the configured organizations
 gh int                 filter organizations
 gh intechcore/         list the organization's repositories
-gh owner/repo          open the repository (⏎), or drill in (⇥)
+gh owner/repo          open the repo menu (⏎): open, issues, pulls, ...
 gh owner/repo #123     open an issue or pull request
 gh owner/repo @branch  open a branch
 gh owner/repo *commit  open a commit
