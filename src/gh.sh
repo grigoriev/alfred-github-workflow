@@ -83,6 +83,18 @@ unhide_repo() {
   return 0
 }
 
+# List the configured organizations; the first item opens the editor.
+list_orgs() {
+  local org
+  add_result "" "edit-orgs" "Edit organizations" "Open the org list in a text editor" "$ICON_ORG" "yes"
+  while IFS= read -r org; do
+    [[ -n "$org" ]] || continue
+    add_result "" "" "$org" "Configured organization" "$ICON_ORG" "no"
+  done < <(configured_orgs)
+  get_json_results
+  return 0
+}
+
 # List the hidden repositories; selecting one unhides it.
 list_hidden() {
   local repo found=0
@@ -317,6 +329,7 @@ if [[ "$mode" == "run" ]]; then
     copy) printf '%s' "$payload" | pbcopy ;;
     auth) run_auth "$payload" ;;
     delete) run_delete "$payload" ;;
+    edit-orgs) edit_orgs ;;
     autoupdate) set_autoupdate "$payload" ;;
     hide) hide_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
     unhide) unhide_repo "$payload"; alfred_search "gh > hidden" ;;
@@ -335,6 +348,8 @@ if [[ "$query" == ">"* ]]; then
   sub="${sub# }"
   if [[ "$sub" == hidden* ]]; then
     list_hidden
+  elif [[ "$sub" == orgs* ]]; then
+    list_orgs
   elif [[ "$sub" == update* ]]; then
     if [[ -f src/update.sh ]]; then
       . src/update.sh ""
@@ -361,5 +376,8 @@ else
     autoupdate_banner
   fi
   add_org_items "$query"
+  if ! configured_orgs | grep -q .; then
+    add_result "" "edit-orgs" "No organizations yet" "Press enter to add organizations" "$ICON_ORG" "yes"
+  fi
   get_json_results
 fi

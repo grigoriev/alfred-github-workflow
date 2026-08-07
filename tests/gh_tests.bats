@@ -225,6 +225,27 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["testorg"]' >/dev/null
 }
 
+@test "gh.sh: > orgs lists an edit item and the configured orgs" {
+  run bash -c '. src/gh.sh list "> orgs"'
+  echo "$output" | jq -e '.items[0].title == "Edit organizations"' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "edit-orgs"' >/dev/null
+  echo "$output" | jq -e '[.items[].title] | index("testorg") != null' >/dev/null
+}
+
+@test "gh.sh: edit-orgs seeds and opens the orgs file in an editor" {
+  export OPEN_LOG="$BATS_TEST_TMPDIR/open.log"
+  rm -f "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh run "edit-orgs"'
+  [ -f "$alfred_workflow_data/orgs" ]
+  grep -q "orgs" "$OPEN_LOG"
+}
+
+@test "gh.sh: shows an add-organizations hint when none are configured" {
+  rm -f "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list ""'
+  echo "$output" | jq -e '[.items[].title] | index("No organizations yet") != null' >/dev/null
+}
+
 @test "gh.sh: run ignores an unknown action" {
   run bash -c '. src/gh.sh run "bogus payload"'
   [ "$status" -eq 0 ]

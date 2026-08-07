@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# The GitHub organizations whose repositories the workflow offers.
-# Override by writing one org per line to "$alfred_workflow_data/orgs".
-DEFAULT_ORGS="grigoriev intechcore SchweizerischeBundesbahnen"
+# The GitHub organizations whose repositories the workflow offers. Edit the list
+# with "gh > orgs". It is stored one org per line in "$alfred_workflow_data/orgs".
 
-# Print the configured orgs, one per line.
+# Path to the organizations list.
+orgs_file() {
+  printf '%s/orgs' "${alfred_workflow_data:-.}"
+  return 0
+}
+
+# Print the configured orgs, one per line, skipping blank and comment lines.
 configured_orgs() {
-  local orgs_file org
-  orgs_file="${alfred_workflow_data:-.}/orgs"
-  if [[ -f "$orgs_file" ]]; then
-    grep -vE '^[[:space:]]*$' "$orgs_file"
-  else
-    for org in $DEFAULT_ORGS; do
-      printf '%s\n' "$org"
-    done
+  local file
+  file="$(orgs_file)"
+  if [[ -f "$file" ]]; then
+    grep -vE '^[[:space:]]*(#.*)?$' "$file" || true
   fi
   return 0
 }

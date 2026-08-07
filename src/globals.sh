@@ -31,6 +31,7 @@ globals_menu() {
   global_item "login"           "$filter" "Sign in"           "Run gh auth login in a terminal"  "auth login"      "yes" "$ICON_LOGIN"  ""
   global_item "logout"          "$filter" "Sign out"          "Run gh auth logout in a terminal" "auth logout"     "yes" "$ICON_LOGOUT" ""
   global_item "update"          "$filter" "Check for updates" "Check for a new version"          ""                "no"  "$ICON_UPDATE" "> update"
+  global_item "organizations orgs" "$filter" "Organizations"  "Edit the list of organizations"   ""                "no"  "$ICON_ORG"    "> orgs"
   global_item "hidden repos"    "$filter" "Hidden repositories" "Show and unhide hidden repos"   ""                "no"  "$ICON_REPO"   "> hidden"
   global_item "delete cache"    "$filter" "Delete cache"      "Drop cached API responses"        "delete cache"    "yes" "$ICON_TRASH"  ""
   global_item "delete database" "$filter" "Delete database"   "Rebuild the repository list"      "delete database" "yes" "$ICON_TRASH"  ""
@@ -56,6 +57,19 @@ on run argv
   end tell
 end run
 APPLESCRIPT
+  return 0
+}
+
+# Open the organizations list in a text editor, seeding a template if missing.
+edit_orgs() {
+  local file
+  file="$(orgs_file)"
+  mkdir -p "${alfred_workflow_data:-.}"
+  if [[ ! -f "$file" ]]; then
+    printf '%s\n' "# One GitHub organization or user per line." \
+                  "# Lines that start with # are ignored." > "$file"
+  fi
+  open -e "$file"
   return 0
 }
 
