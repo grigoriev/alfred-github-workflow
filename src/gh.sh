@@ -60,28 +60,50 @@ repo_picker() {
   return 0
 }
 
-# Fetch a repo sub-resource through the API (cached) and print filtered items.
+# Fetch a repo sub-resource (cached) and print filtered items. A cold cache is
+# fetched synchronously; a stale cache is served now and refreshed in the
+# background. Returns 1 when it served stale data, so the caller reruns.
 # $1 repo  $2 filter  $3 cache slug  $4 api path  $5 ttl  $6 jq file  $7 icon
 list_resource() {
   local repo="$1" filter="$2" slug="$3" apipath="$4" ttl="$5" jqfile="$6" icon="$7"
-  local key data
+  local key cachefile data stale=0
   key="${slug}_$(printf '%s' "$repo" | tr '/' '_').json"
+  cachefile="$(cache_path "$key")"
   if ! cache_fresh "$key" "$ttl"; then
-    data="$(gh_api "$apipath")"
-    [[ -n "$data" ]] && printf '%s' "$data" | cache_set "$key"
+    if [[ -f "$cachefile" ]]; then
+      stale=1
+      mkdir -p "$(dirname "$cachefile")"
+      ( gh_api "$apipath" > "$cachefile.tmp" 2>/dev/null && mv "$cachefile.tmp" "$cachefile" ) >/dev/null 2>&1 &
+      disown 2>/dev/null || true
+    else
+      data="$(gh_api "$apipath")"
+      [[ -n "$data" ]] && printf '%s' "$data" | cache_set "$key"
+    fi
   fi
   data="$(cache_get "$key")"
   [[ -n "$data" ]] || data="[]"
   jq -c -f "$jqfile" --arg q "$filter" --arg repo "$repo" --arg icon "$icon" <<< "$data"
+  return "$stale"
+}
+
+# Print a resource item list, adding a rerun when the data was stale ($2 = 1).
+emit_async() {
+  local items="$1" stale="$2"
+  if [[ "$stale" -eq 1 ]]; then
+    printf '{"rerun":0.4,"items":%s}\n' "$items"
+  else
+    print_items "$items"
+  fi
   return 0
 }
 
 # List open issues and pull requests, filtered by number or title.
 list_issues() {
-  local repo="$1" filter="$2" items
+  local repo="$1" filter="$2" items stale
   items="$(list_resource "$repo" "$filter" issues "repos/$repo/issues?state=open&per_page=50" 60 src/format-issues.jq "$ICON_ISSUE")"
+  stale=$?
   if [[ "$items" != "[]" ]]; then
-    print_items "$items"
+    emit_async "$items" "$stale"
     return 0
   fi
   if [[ "$filter" =~ ^[0-9]+$ ]]; then
@@ -89,32 +111,37 @@ list_issues() {
   else
     add_result "" "" "No open issues or pull requests" "Type a number to open one" "$ICON_ISSUE" "no"
   fi
+  [[ "$stale" -eq 1 ]] && set_rerun 0.4
   get_json_results
   return 0
 }
 
 # List branches, filtered by name.
 list_branches() {
-  local repo="$1" filter="$2" items
+  local repo="$1" filter="$2" items stale
   items="$(list_resource "$repo" "$filter" branches "repos/$repo/branches?per_page=100" 120 src/format-branches.jq "$ICON_BRANCH")"
+  stale=$?
   if [[ "$items" != "[]" ]]; then
-    print_items "$items"
+    emit_async "$items" "$stale"
     return 0
   fi
   add_result "" "" "No branches found" "Type a branch name" "$ICON_BRANCH" "no"
+  [[ "$stale" -eq 1 ]] && set_rerun 0.4
   get_json_results
   return 0
 }
 
 # List recent commits, filtered by sha or message.
 list_commits() {
-  local repo="$1" filter="$2" items
+  local repo="$1" filter="$2" items stale
   items="$(list_resource "$repo" "$filter" commits "repos/$repo/commits?per_page=30" 120 src/format-commits.jq "$ICON_COMMIT")"
+  stale=$?
   if [[ "$items" != "[]" ]]; then
-    print_items "$items"
+    emit_async "$items" "$stale"
     return 0
   fi
   add_result "" "" "No commits found" "Type a sha or message" "$ICON_COMMIT" "no"
+  [[ "$stale" -eq 1 ]] && set_rerun 0.4
   get_json_results
   return 0
 }
