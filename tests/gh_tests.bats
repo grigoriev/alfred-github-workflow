@@ -137,6 +137,25 @@ setup() {
   echo "$output" | jq -e '(.items | length) >= 1' >/dev/null
 }
 
+@test "gh.sh: a repo item offers a hide modifier" {
+  run bash -c '. src/gh.sh list "testorg/al"'
+  echo "$output" | jq -e '.items[0].mods.cmd.arg == "hide testorg/alpha"' >/dev/null
+}
+
+@test "gh.sh: hiding a repo removes it from the picker" {
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  [ -f "$alfred_workflow_data/hidden" ]
+  run bash -c '. src/gh.sh list "testorg/"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: unhiding a repo restores it" {
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  run bash -c '. src/gh.sh run "unhide testorg/beta"'
+  run bash -c '. src/gh.sh list "testorg/"'
+  echo "$output" | jq -e '[.items[].title] | index("testorg/beta") != null' >/dev/null
+}
+
 @test "gh.sh: # with no match shows a hint" {
   run bash -c '. src/gh.sh list "testorg/alpha #zzz"'
   echo "$output" | jq -e '.items[0].title == "No open issues or pull requests"' >/dev/null

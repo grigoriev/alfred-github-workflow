@@ -54,11 +54,14 @@ gh owner/repo issues | pulls | actions | admin | clone |
 gh >                   global commands (login, logout, update, ...)
 ```
 
+Hold <kbd>⌘</kbd> on a repository and press <kbd>⏎</kbd> to hide it from the
+list. Manage hidden repositories with `gh > hidden`, where <kbd>⏎</kbd> unhides.
+
 ## Configuration
 
 The default organizations are `grigoriev`, `intechcore`, and
 `SchweizerischeBundesbahnen`. Override them by writing one org per line to
-`<workflow data>/orgs`.
+`<workflow data>/orgs`. Hidden repositories are stored in `<workflow data>/hidden`.
 
 ## Caching
 

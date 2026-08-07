@@ -46,11 +46,62 @@ print_items() {
   return 0
 }
 
+# Path to the hidden-repositories list.
+hidden_file() {
+  printf '%s/hidden' "${alfred_workflow_data:-.}"
+  return 0
+}
+
+# Print the hidden repositories as a JSON array.
+hidden_json() {
+  local file
+  file="$(hidden_file)"
+  if [[ -f "$file" ]]; then
+    jq -Rn '[inputs | select(length > 0)]' < "$file"
+  else
+    printf '[]'
+  fi
+  return 0
+}
+
+# Add a repo to the hidden list (deduplicated).
+hide_repo() {
+  local repo="$1" file
+  file="$(hidden_file)"
+  mkdir -p "${alfred_workflow_data:-.}"
+  grep -qxF "$repo" "$file" 2>/dev/null || printf '%s\n' "$repo" >> "$file"
+  return 0
+}
+
+# Remove a repo from the hidden list.
+unhide_repo() {
+  local repo="$1" file kept
+  file="$(hidden_file)"
+  [[ -f "$file" ]] || return 0
+  kept="$(grep -vxF "$repo" "$file" || true)"
+  printf '%s' "$kept" > "$file"
+  return 0
+}
+
+# List the hidden repositories; selecting one unhides it.
+list_hidden() {
+  local repo found=0
+  while IFS= read -r repo; do
+    [[ -n "$repo" ]] || continue
+    found=1
+    add_result "" "unhide $repo" "$repo" "Press enter to unhide" "$ICON_REPO" "yes"
+  done < <(hidden_json | jq -r '.[]')
+  [[ "$found" -eq 1 ]] || add_result "" "" "No hidden repositories" "Hide a repo with cmd on its item" "$ICON_REPO" "no"
+  get_json_results
+  return 0
+}
+
 # The repository picker for "owner/partial": filter the database and print items.
 repo_picker() {
-  local query="$1" repos items
+  local query="$1" repos items hidden
   repos="$(read_database)"
-  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" <<< "$repos")"
+  hidden="$(hidden_json)"
+  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
     get_json_results
@@ -203,6 +254,8 @@ if [[ "$mode" == "run" ]]; then
     auth) run_auth "$payload" ;;
     delete) run_delete "$payload" ;;
     autoupdate) set_autoupdate "$payload" ;;
+    hide) hide_repo "$payload" ;;
+    unhide) unhide_repo "$payload" ;;
     http://*|https://*) rm -f "$(autoupdate_pending)"; [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) : ;;
   esac
@@ -214,7 +267,9 @@ if [[ "$query" == ">"* ]]; then
   # global commands
   sub="${query#>}"
   sub="${sub# }"
-  if [[ "$sub" == update* ]]; then
+  if [[ "$sub" == hidden* ]]; then
+    list_hidden
+  elif [[ "$sub" == update* ]]; then
     if [[ -f src/update.sh ]]; then
       . src/update.sh ""
     else
