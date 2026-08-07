@@ -1,74 +1,16 @@
 #!/bin/bash
 
 # Global commands behind "gh >": auth, cache and database maintenance, updates.
+# The autoupdate helpers (autoupdate_enabled, set_autoupdate, autoupdate_refresh,
+# autoupdate_banner, ...) come from the shared, fetched src/autoupdate.sh.
 
 . src/media.sh
-. src/cache.sh
+. src/autoupdate.sh
 
 # Lowercase a string.
 gh_lower() {
   local text="$1"
   printf '%s' "$text" | tr '[:upper:]' '[:lower:]'
-  return 0
-}
-
-# The autoupdate flag lives as a file in the data dir.
-autoupdate_flag() {
-  printf '%s/autoupdate' "${alfred_workflow_data:-.}"
-  return 0
-}
-
-autoupdate_enabled() {
-  [[ -f "$(autoupdate_flag)" ]] && return 0
-  return 1
-}
-
-# Timestamp of the last autoupdate check.
-autoupdate_stamp() {
-  printf '%s/autoupdate-checked' "${alfred_workflow_data:-.}"
-  return 0
-}
-
-# Holds the download url of a pending update, if any.
-autoupdate_pending() {
-  printf '%s/update-available' "${alfred_workflow_data:-.}"
-  return 0
-}
-
-# Run a throttled update check (at most once a day) when autoupdate is on, and
-# record any available update for the banner.
-autoupdate_refresh() {
-  autoupdate_enabled || return 0
-  [[ -f src/update.sh ]] || return 0
-  local stamp now mtime out url
-  stamp="$(autoupdate_stamp)"
-  if [[ -f "$stamp" ]]; then
-    now="$(date +%s)"
-    mtime="$(file_mtime "$stamp")"
-    if [[ -n "$mtime" ]] && [[ $(( now - mtime )) -lt 86400 ]]; then
-      return 0
-    fi
-  fi
-  mkdir -p "${alfred_workflow_data:-.}"
-  : > "$stamp"
-  out="$(bash src/update.sh "" 2>/dev/null)"
-  url="$(printf '%s' "$out" | jq -r '.items[]?.arg // empty' 2>/dev/null | head -1)"
-  if [[ -n "$url" ]]; then
-    printf '%s' "$url" > "$(autoupdate_pending)"
-  else
-    rm -f "$(autoupdate_pending)"
-  fi
-  return 0
-}
-
-# Queue an "update available" banner when a pending update was found.
-autoupdate_banner() {
-  local file url
-  file="$(autoupdate_pending)"
-  [[ -f "$file" ]] || return 0
-  url="$(cat "$file" 2>/dev/null)"
-  [[ -n "$url" ]] || return 0
-  add_result "" "$url" "Update available" "Install the new version of this workflow" "$ICON_UPDATE" "yes"
   return 0
 }
 
@@ -126,22 +68,6 @@ run_delete() {
       ;;
     database)
       rm -f "${alfred_workflow_data:-.}/repos.json"
-      ;;
-    *) : ;;
-  esac
-  return 0
-}
-
-# Toggle autoupdate. $1 = on | off.
-set_autoupdate() {
-  local value="$1"
-  case "$value" in
-    on)
-      mkdir -p "${alfred_workflow_data:-.}"
-      : > "$(autoupdate_flag)"
-      ;;
-    off)
-      rm -f "$(autoupdate_flag)"
       ;;
     *) : ;;
   esac

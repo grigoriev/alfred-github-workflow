@@ -1,5 +1,5 @@
 WORKFLOW    := GitHub.alfredworkflow
-UPDATER_URL := https://github.com/grigoriev/alfred-workflow-updater/releases/latest/download/update.sh
+UPDATER_URL := https://github.com/grigoriev/alfred-workflow-updater/releases/latest/download/updater.tar.gz
 SCRIPTS     := src/gh.sh src/config.sh src/github.sh src/database.sh src/cache.sh src/globals.sh
 EXCLUDES    := '.git/*' '.github/*' '.gitignore' 'Makefile' '$(WORKFLOW)'
 
@@ -11,10 +11,10 @@ all: build
 icons:
 	bash .github/build-icons.sh
 
-# Fetch the shared updater at build time (not stored in git)
+# Fetch the shared updater bundle at build time (not stored in git)
 updater:
-	curl -sfL $(UPDATER_URL) -o src/update.sh
-	chmod +x src/update.sh
+	curl -sfL $(UPDATER_URL) | tar -xzf - -C src
+	chmod +x src/update.sh src/autoupdate.sh
 
 # Smoke-test the fetched updater. Tolerant before the first release exists:
 # it reports an update only once a newer release is published.
@@ -33,11 +33,12 @@ build: verify-updater
 	unzip -l $(WORKFLOW) | grep -q 'src/update.sh'
 	@echo "built $(WORKFLOW)"
 
-test:
+# Tests need the shared autoupdate.sh, so fetch the updater bundle first
+test: updater
 	bats tests
 
 lint:
 	shellcheck -x --severity=warning $(SCRIPTS)
 
 clean:
-	rm -f $(WORKFLOW) src/update.sh
+	rm -f $(WORKFLOW) src/update.sh src/autoupdate.sh
