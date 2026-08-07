@@ -55,7 +55,8 @@ gh >                   global commands (login, logout, update, ...)
 ```
 
 Hold <kbd>⌘</kbd> on a repository and press <kbd>⏎</kbd> to hide it from the
-list. Manage hidden repositories with `gh > hidden`, where <kbd>⏎</kbd> unhides.
+list, or <kbd>⌥</kbd> to pin it to the top (marked with a star). Manage hidden
+repositories with `gh > hidden`, where <kbd>⏎</kbd> unhides.
 
 ## Configuration
 
