@@ -17,9 +17,11 @@ repos_db() {
   return 0
 }
 
-# Rebuild the database from every configured org, writing atomically.
+# Rebuild the database from every configured org, writing atomically. An empty
+# result (for example a transient gh failure) is not written, so it never
+# poisons the cache; the previous database, if any, is kept.
 rebuild_database() {
-  local db org data all
+  local db org data all normalized
   db="$(repos_db)"
   mkdir -p "$(dirname "$db")"
   all="[]"
@@ -29,7 +31,10 @@ rebuild_database() {
     [[ -n "$data" ]] || continue
     all="$(jq -cn --argjson a "$all" --argjson b "$data" '$a + $b')"
   done < <(configured_orgs)
-  jq -c -f src/normalize-repos.jq <<< "$all" > "$db.tmp" && mv "$db.tmp" "$db"
+  normalized="$(jq -c -f src/normalize-repos.jq <<< "$all")"
+  if [[ -n "$normalized" && "$normalized" != "[]" ]]; then
+    printf '%s' "$normalized" > "$db.tmp" && mv "$db.tmp" "$db"
+  fi
   return 0
 }
 

@@ -2,6 +2,7 @@
 # Minimal gh mock for tests.
 case "$1" in
   auth)
+    [ -n "$MOCK_UNAUTH" ] && exit 1
     exit 0
     ;;
   repo)

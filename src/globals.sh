@@ -43,10 +43,12 @@ globals_menu() {
   return 0
 }
 
-# Open a terminal running a gh auth command. $1 = login | logout.
+# Open a terminal running a gh auth command. $1 = login | logout. Clear the
+# token env vars so a login stores credentials instead of using an inherited
+# GITHUB_TOKEN (which Alfred would not see anyway).
 run_auth() {
   local command="$1"
-  osascript - "gh auth $command" <<'APPLESCRIPT'
+  osascript - "env -u GITHUB_TOKEN -u GH_TOKEN gh auth $command" <<'APPLESCRIPT'
 on run argv
   tell application "Terminal"
     activate
