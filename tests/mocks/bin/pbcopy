@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mock pbcopy; log stdin.
+cat >> "${PBCOPY_LOG:-/dev/null}"

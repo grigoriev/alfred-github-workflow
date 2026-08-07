@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set version from tag
+        run: plutil -replace version -string "${GITHUB_REF_NAME#v}" info.plist
+
+      - name: Build Alfred Workflow
+        run: make build
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" GitHub.alfredworkflow --title "$GITHUB_REF_NAME" --generate-notes
