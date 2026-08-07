@@ -96,12 +96,50 @@ list_hidden() {
   return 0
 }
 
+# Path to the pinned-repositories list.
+pinned_file() {
+  printf '%s/pinned' "${alfred_workflow_data:-.}"
+  return 0
+}
+
+# Print the pinned repositories as a JSON array.
+pinned_json() {
+  local file
+  file="$(pinned_file)"
+  if [[ -f "$file" ]]; then
+    jq -Rn '[inputs | select(length > 0)]' < "$file"
+  else
+    printf '[]'
+  fi
+  return 0
+}
+
+# Add a repo to the pinned list (deduplicated).
+pin_repo() {
+  local repo="$1" file
+  file="$(pinned_file)"
+  mkdir -p "${alfred_workflow_data:-.}"
+  grep -qxF "$repo" "$file" 2>/dev/null || printf '%s\n' "$repo" >> "$file"
+  return 0
+}
+
+# Remove a repo from the pinned list.
+unpin_repo() {
+  local repo="$1" file kept
+  file="$(pinned_file)"
+  [[ -f "$file" ]] || return 0
+  kept="$(grep -vxF "$repo" "$file" || true)"
+  printf '%s' "$kept" > "$file"
+  return 0
+}
+
 # The repository picker for "owner/partial": filter the database and print items.
 repo_picker() {
-  local query="$1" repos items hidden
+  local query="$1" repos items hidden pinned
   repos="$(read_database)"
   hidden="$(hidden_json)"
-  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" <<< "$repos")"
+  pinned="$(pinned_json)"
+  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" --argjson pinned "$pinned" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
     get_json_results
@@ -256,6 +294,8 @@ if [[ "$mode" == "run" ]]; then
     autoupdate) set_autoupdate "$payload" ;;
     hide) hide_repo "$payload" ;;
     unhide) unhide_repo "$payload" ;;
+    pin) pin_repo "$payload" ;;
+    unpin) unpin_repo "$payload" ;;
     http://*|https://*) rm -f "$(autoupdate_pending)"; [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) : ;;
   esac

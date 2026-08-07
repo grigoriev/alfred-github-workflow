@@ -156,6 +156,26 @@ setup() {
   echo "$output" | jq -e '[.items[].title] | index("testorg/beta") != null' >/dev/null
 }
 
+@test "gh.sh: a repo item offers a pin modifier" {
+  run bash -c '. src/gh.sh list "testorg/al"'
+  echo "$output" | jq -e '.items[0].mods.alt.arg == "pin testorg/alpha"' >/dev/null
+}
+
+@test "gh.sh: pinning a repo sorts it to the top with a star" {
+  run bash -c '. src/gh.sh run "pin testorg/beta"'
+  [ -f "$alfred_workflow_data/pinned" ]
+  run bash -c '. src/gh.sh list "testorg/"'
+  echo "$output" | jq -e '.items[0].title == "★ testorg/beta"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods.alt.arg == "unpin testorg/beta"' >/dev/null
+}
+
+@test "gh.sh: unpinning a repo removes the star" {
+  run bash -c '. src/gh.sh run "pin testorg/beta"'
+  run bash -c '. src/gh.sh run "unpin testorg/beta"'
+  run bash -c '. src/gh.sh list "testorg/"'
+  echo "$output" | jq -e '[.items[].title] | index("★ testorg/beta") == null' >/dev/null
+}
+
 @test "gh.sh: # with no match shows a hint" {
   run bash -c '. src/gh.sh list "testorg/alpha #zzz"'
   echo "$output" | jq -e '.items[0].title == "No open issues or pull requests"' >/dev/null
