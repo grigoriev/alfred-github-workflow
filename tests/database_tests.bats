@@ -21,6 +21,20 @@ setup() {
   echo "$output" | jq -e '[.[].name] | index("alpha") != null and index("beta") != null' >/dev/null
 }
 
+@test "rebuild_database: does not cache an empty result" {
+  printf 'emptyorg\n' > "$alfred_workflow_data/orgs"
+  bash -c '. src/database.sh; rebuild_database'
+  [ ! -f "$alfred_workflow_data/repos.json" ]
+}
+
+@test "rebuild_database: keeps a previous database on an empty rebuild" {
+  printf '[{"nameWithOwner":"x/y"}]' > "$alfred_workflow_data/repos.json"
+  printf 'emptyorg\n' > "$alfred_workflow_data/orgs"
+  bash -c '. src/database.sh; rebuild_database'
+  run cat "$alfred_workflow_data/repos.json"
+  echo "$output" | jq -e '.[0].nameWithOwner == "x/y"' >/dev/null
+}
+
 @test "read_database: fresh within the ttl, stale past it" {
   bash -c '. src/database.sh; rebuild_database'
   run bash -c '. src/database.sh; read_database >/dev/null'

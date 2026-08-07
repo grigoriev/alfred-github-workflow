@@ -23,6 +23,14 @@ gh_bin() {
   return 0
 }
 
+# Succeed when gh is installed and authenticated.
+gh_authed() {
+  local gh
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || return 1
+  "$gh" auth status >/dev/null 2>&1
+}
+
 # Call the GitHub REST API through gh. Prints the raw response, empty on failure.
 gh_api() {
   local gh
