@@ -127,3 +127,29 @@ setup() {
   run bash -c '. src/gh.sh list "testorg/alpha #"'
   [ -f "$alfred_workflow_cache/issues_testorg_alpha.json" ]
 }
+
+@test "gh.sh: # with no match shows a hint" {
+  run bash -c '. src/gh.sh list "testorg/alpha #zzz"'
+  echo "$output" | jq -e '.items[0].title == "No open issues or pull requests"' >/dev/null
+}
+
+@test "gh.sh: @ with no match shows a hint" {
+  run bash -c '. src/gh.sh list "testorg/alpha @zzz"'
+  echo "$output" | jq -e '.items[0].title == "No branches found"' >/dev/null
+}
+
+@test "gh.sh: * with no match shows a hint" {
+  run bash -c '. src/gh.sh list "testorg/alpha *zzz"'
+  echo "$output" | jq -e '.items[0].title == "No commits found"' >/dev/null
+}
+
+@test "gh.sh: orgs not matching the query are skipped" {
+  printf 'testorg\nother\n' > "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "test"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg"]' >/dev/null
+}
+
+@test "gh.sh: run ignores an unknown action" {
+  run bash -c '. src/gh.sh run "bogus payload"'
+  [ "$status" -eq 0 ]
+}

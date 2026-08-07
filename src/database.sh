@@ -24,10 +24,7 @@ rebuild_database() {
     [[ -n "$data" ]] || continue
     all="$(jq -cn --argjson a "$all" --argjson b "$data" '$a + $b')"
   done < <(configured_orgs)
-  jq -c 'map({
-    owner: .owner.login, name: .name, nameWithOwner: .nameWithOwner,
-    description: (.description // ""), isPrivate: .isPrivate,
-    pushedAt: .pushedAt, url: .url })' <<< "$all" > "$db"
+  jq -c -f src/normalize-repos.jq <<< "$all" > "$db"
   return 0
 }
 

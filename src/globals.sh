@@ -27,7 +27,7 @@ global_item() {
   local token="$1" filter="$2" title="$3" subtitle="$4" arg="$5" valid="$6" icon="$7" auto="$8"
   case "$(gh_lower "$token")" in
     *"$(gh_lower "$filter")"*) add_result "" "$arg" "$title" "$subtitle" "$icon" "$valid" "$auto" ;;
-    *) ;;
+    *) : ;;
   esac
   return 0
 }
@@ -74,7 +74,7 @@ run_delete() {
     database)
       rm -f "${alfred_workflow_data:-.}/repos.json"
       ;;
-    *) ;;
+    *) : ;;
   esac
   return 0
 }
@@ -89,7 +89,7 @@ set_autoupdate() {
     off)
       rm -f "$(autoupdate_flag)"
       ;;
-    *) ;;
+    *) : ;;
   esac
   return 0
 }
