@@ -3,8 +3,10 @@
 # Thin wrappers over the gh CLI. gh handles auth, pagination, and JSON, so the
 # workflow stays a small UI over it.
 
-# Locate the gh binary. Prefer PATH (so tests can mock it), then fall back to
-# the common Homebrew paths, since Alfred runs with a minimal PATH.
+# Fallback locations, since Alfred runs with a minimal PATH. Overridable in tests.
+GH_FALLBACK_PATHS="${GH_FALLBACK_PATHS:-/opt/homebrew/bin/gh /usr/local/bin/gh}"
+
+# Locate the gh binary. Prefer PATH (so tests can mock it), then the fallbacks.
 gh_bin() {
   local candidate
   candidate="$(command -v gh 2>/dev/null)"
@@ -12,22 +14,13 @@ gh_bin() {
     printf '%s' "$candidate"
     return 0
   fi
-  for candidate in /opt/homebrew/bin/gh /usr/local/bin/gh; do
+  for candidate in $GH_FALLBACK_PATHS; do
     if [[ -x "$candidate" ]]; then
       printf '%s' "$candidate"
       return 0
     fi
   done
   return 0
-}
-
-# Succeed when gh is installed and authenticated.
-gh_authed() {
-  local gh
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || return 1
-  "$gh" auth status >/dev/null 2>&1
-  return $?
 }
 
 # Call the GitHub REST API through gh. Prints the raw response, empty on failure.

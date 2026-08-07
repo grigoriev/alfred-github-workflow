@@ -42,6 +42,49 @@ setup() {
   [ ! -f "$alfred_workflow_data/repos.json" ]
 }
 
+@test "gh.sh: > with no match yields an empty menu" {
+  run bash -c '. src/gh.sh list "> zzz"'
+  echo "$output" | jq -e '.items == []' >/dev/null
+}
+
+@test "gh.sh: run delete ignores an unknown target" {
+  run bash -c '. src/gh.sh run "delete bogus"'
+  [ "$status" -eq 0 ]
+}
+
+@test "gh.sh: run autoupdate ignores an unknown value" {
+  run bash -c '. src/gh.sh run "autoupdate bogus"'
+  [ "$status" -eq 0 ]
+  [ ! -f "$alfred_workflow_data/autoupdate" ]
+}
+
+@test "gh.sh: > update delegates to the updater when present" {
+  cat > src/update.sh <<'STUB'
+#!/bin/bash
+printf '{"items":[{"title":"updater ran"}]}'
+STUB
+  run bash -c '. src/gh.sh list "> update"'
+  rm -f src/update.sh
+  echo "$output" | jq -e '.items[0].title == "updater ran"' >/dev/null
+}
+
+@test "gh.sh: > update shows a hint when the updater is missing" {
+  rm -f src/update.sh
+  run bash -c '. src/gh.sh list "> update"'
+  echo "$output" | jq -e '.items[0].title == "Updater unavailable"' >/dev/null
+}
+
+@test "gh.sh: run installs an update from a url" {
+  export INSTALL_LOG="$BATS_TEST_TMPDIR/install.log"
+  cat > src/update.sh <<'STUB'
+#!/bin/bash
+echo "install [$1]" >> "$INSTALL_LOG"
+STUB
+  run bash -c '. src/gh.sh run "https://example.com/GitHub.alfredworkflow"'
+  rm -f src/update.sh
+  grep -q 'install \[https://example.com/GitHub.alfredworkflow\]' "$INSTALL_LOG"
+}
+
 @test "gh.sh: autoupdate toggles and the menu reflects it" {
   run bash -c '. src/gh.sh list ">"'
   echo "$output" | jq -e '[.items[].title] | index("Activate autoupdate") != null' >/dev/null

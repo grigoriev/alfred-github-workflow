@@ -33,7 +33,7 @@ add_org_items() {
     lc_org="$(printf '%s' "$org" | tr '[:upper:]' '[:lower:]')"
     case "$lc_org" in
       "$lc_filter"*) add_result "" "" "$org" "Browse $org repositories" "$ICON_ORG" "no" "$org/" ;;
-      *) ;;
+      *) : ;;
     esac
   done < <(configured_orgs)
   return 0
@@ -118,7 +118,7 @@ section_item() {
   local name="$1" filter="$2" title="$3" subtitle="$4" arg="$5" icon="$6"
   case "$name" in
     "$filter"*) add_result "" "$arg" "$title" "$subtitle" "$icon" "yes" ;;
-    *) ;;
+    *) : ;;
   esac
   return 0
 }
@@ -152,7 +152,7 @@ repo_scoped() {
     "#"*) list_issues "$repo" "${rest#\#}"; return 0 ;;
     "@"*) list_branches "$repo" "${rest#@}"; return 0 ;;
     "*"*) list_commits "$repo" "${rest#\*}"; return 0 ;;
-    *) ;;
+    *) : ;;
   esac
   repo_menu "$repo" "$rest"
   return 0
@@ -170,7 +170,7 @@ if [[ "$mode" == "run" ]]; then
     delete) run_delete "$payload" ;;
     autoupdate) set_autoupdate "$payload" ;;
     http://*|https://*) [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
-    *) ;;
+    *) : ;;
   esac
   exit
 fi
