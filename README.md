@@ -67,9 +67,11 @@ The default organizations are `grigoriev`, `intechcore`, and
 ## Caching
 
 The list of repositories is cached as a local database so autocomplete is
-instant. Live data (issues, branches, commits) is cached briefly. Clear either
-from the `gh >` menu: `delete database` rebuilds the repository list, `delete
-cache` drops the transient responses.
+instant. It refreshes in the background once it is older than six hours: the
+list still shows immediately and updates in place. Live data (issues, branches,
+commits) is cached briefly the same way. Clear either from the `gh >` menu:
+`delete database` rebuilds the repository list, `delete cache` drops the
+transient responses.
 
 ## Development
 
