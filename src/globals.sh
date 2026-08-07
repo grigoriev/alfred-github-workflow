@@ -7,7 +7,8 @@
 
 # Lowercase a string.
 gh_lower() {
-  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+  local text="$1"
+  printf '%s' "$text" | tr '[:upper:]' '[:lower:]'
   return 0
 }
 
@@ -18,7 +19,8 @@ autoupdate_flag() {
 }
 
 autoupdate_enabled() {
-  [[ -f "$(autoupdate_flag)" ]]
+  [[ -f "$(autoupdate_flag)" ]] && return 0
+  return 1
 }
 
 # Queue a global command when its token contains the filter (case-insensitive).
@@ -51,7 +53,8 @@ globals_menu() {
 
 # Open a terminal running a gh auth command. $1 = login | logout.
 run_auth() {
-  osascript - "gh auth $1" <<'APPLESCRIPT'
+  local command="$1"
+  osascript - "gh auth $command" <<'APPLESCRIPT'
 on run argv
   tell application "Terminal"
     activate
@@ -64,7 +67,8 @@ APPLESCRIPT
 
 # Delete the cache or the database. $1 = cache | database.
 run_delete() {
-  case "$1" in
+  local target="$1"
+  case "$target" in
     cache)
       if [[ -n "$alfred_workflow_cache" ]]; then
         rm -rf "$alfred_workflow_cache"
@@ -81,7 +85,8 @@ run_delete() {
 
 # Toggle autoupdate. $1 = on | off.
 set_autoupdate() {
-  case "$1" in
+  local value="$1"
+  case "$value" in
     on)
       mkdir -p "${alfred_workflow_data:-.}"
       : > "$(autoupdate_flag)"
