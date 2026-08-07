@@ -4,8 +4,17 @@
 # and an alt modifier that pins or unpins it.
 # --arg q the query, --arg icon the icon path, --argjson hidden a list of hidden
 # "owner/name" strings, --argjson pinned a list of pinned "owner/name" strings.
-def matches($q): $q == "" or
-  (.nameWithOwner | ascii_downcase | contains($q | ascii_downcase));
+# Match owner and repo name separately, so "owner/pdf" finds a repo whose name
+# contains "pdf" anywhere, not only names that start with it.
+def matches($q):
+  $q == ""
+  or (($q | ascii_downcase) as $lq
+      | if ($lq | contains("/"))
+        then (($lq | split("/")) as $p
+              | (.owner | ascii_downcase | contains($p[0]))
+                and (.name | ascii_downcase | contains($p[1:] | join("/"))))
+        else (.nameWithOwner | ascii_downcase | contains($lq))
+        end);
 [ .[]
   | select(.nameWithOwner as $n | ($hidden | index($n)) == null)
   | select(matches($q)) ]

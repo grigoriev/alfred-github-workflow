@@ -34,6 +34,13 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
 }
 
+@test "gh.sh: filters repos by a substring of the name, not only a prefix" {
+  run bash -c '. src/gh.sh list "testorg/ph"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+  run bash -c '. src/gh.sh list "testorg/et"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/beta"]' >/dev/null
+}
+
 @test "gh.sh: a repo item opens the repo url" {
   run bash -c '. src/gh.sh list "testorg/al"'
   echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha"' >/dev/null
