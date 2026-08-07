@@ -45,6 +45,13 @@ setup() {
   echo "$output" | jq -e '.items[0].title == "No repositories found"' >/dev/null
 }
 
+@test "gh.sh: shows a sign-in hint when gh is not authenticated" {
+  printf 'nope\n' > "$alfred_workflow_data/orgs"
+  run bash -c 'export MOCK_UNAUTH=1; . src/gh.sh list "nope/"'
+  echo "$output" | jq -e '.items[0].title == "Not signed in to GitHub"' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "auth login"' >/dev/null
+}
+
 @test "gh.sh: run open dispatches to open" {
   export OPEN_LOG="$BATS_TEST_TMPDIR/open.log"
   run bash -c '. src/gh.sh run "open https://github.com/testorg/alpha"'
@@ -155,6 +162,12 @@ setup() {
   [ -f "$alfred_workflow_data/hidden" ]
   run bash -c '. src/gh.sh list "testorg/"'
   echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: hiding reopens the org list so the window stays open" {
+  export OSASCRIPT_LOG="$BATS_TEST_TMPDIR/osa.log"
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  grep -q "gh testorg/" "$OSASCRIPT_LOG"
 }
 
 @test "gh.sh: unhiding a repo restores it" {

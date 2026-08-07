@@ -147,7 +147,11 @@ repo_picker() {
   pinned="$(pinned_json)"
   items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" --argjson pinned "$pinned" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
-    add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
+    if gh_authed; then
+      add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
+    else
+      add_result "" "auth login" "Not signed in to GitHub" "Press enter to run gh auth login in a terminal" "$ICON_LOGIN" "yes"
+    fi
     [[ "$stale" -eq 1 ]] && set_rerun 0.5
     get_json_results
     return 0
@@ -292,6 +296,17 @@ repo_scoped() {
   return 0
 }
 
+# Reopen Alfred on a query so the list refreshes in place after an action,
+# instead of the window closing.
+alfred_search() {
+  osascript - "$1" <<'APPLESCRIPT'
+on run argv
+  tell application id "com.runningwithcrocodiles.alfred" to search (item 1 of argv)
+end run
+APPLESCRIPT
+  return 0
+}
+
 # Run mode: dispatch the item action.
 if [[ "$mode" == "run" ]]; then
   action="${query%% *}"
@@ -303,10 +318,10 @@ if [[ "$mode" == "run" ]]; then
     auth) run_auth "$payload" ;;
     delete) run_delete "$payload" ;;
     autoupdate) set_autoupdate "$payload" ;;
-    hide) hide_repo "$payload" ;;
-    unhide) unhide_repo "$payload" ;;
-    pin) pin_repo "$payload" ;;
-    unpin) unpin_repo "$payload" ;;
+    hide) hide_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
+    unhide) unhide_repo "$payload"; alfred_search "gh > hidden" ;;
+    pin) pin_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
+    unpin) unpin_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
     http://*|https://*) rm -f "$(autoupdate_pending)"; [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) : ;;
   esac
