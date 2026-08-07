@@ -24,9 +24,8 @@ def matches($q):
 | map({
     title: (if ._pinned then "★ " + .nameWithOwner else .nameWithOwner end),
     subtitle: (if .description == "" then .url else .description end),
-    arg: ("open https://github.com/" + .nameWithOwner),
     autocomplete: (.nameWithOwner + " "),
-    valid: true,
+    valid: false,
     icon: { path: $icon },
     mods: {
       cmd: { valid: true, arg: ("hide " + .nameWithOwner),

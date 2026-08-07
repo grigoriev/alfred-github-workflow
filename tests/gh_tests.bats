@@ -41,9 +41,9 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["testorg/beta"]' >/dev/null
 }
 
-@test "gh.sh: a repo item opens the repo url" {
+@test "gh.sh: a repo item drills into the repo menu on enter" {
   run bash -c '. src/gh.sh list "testorg/al"'
-  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha"' >/dev/null
+  echo "$output" | jq -e '.items[0].valid == false' >/dev/null
   echo "$output" | jq -e '.items[0].autocomplete == "testorg/alpha "' >/dev/null
 }
 
