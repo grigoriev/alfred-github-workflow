@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mock the macOS open command; log its arguments.
+echo "$@" >> "${OPEN_LOG:-/dev/null}"
