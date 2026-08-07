@@ -135,17 +135,28 @@ unpin_repo() {
 
 # The repository picker for "owner/partial": filter the database and print items.
 repo_picker() {
-  local query="$1" repos items hidden pinned
+  local query="$1" repos items hidden pinned stale
   repos="$(read_database)"
+  stale=$?
+  if [[ "$stale" -eq 1 ]]; then
+    # serve the stale list now and rebuild in the background for the rerun
+    ( rebuild_database ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  fi
   hidden="$(hidden_json)"
   pinned="$(pinned_json)"
   items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" --argjson pinned "$pinned" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
+    [[ "$stale" -eq 1 ]] && set_rerun 0.5
     get_json_results
     return 0
   fi
-  print_items "$items"
+  if [[ "$stale" -eq 1 ]]; then
+    printf '{"rerun":0.5,"items":%s}\n' "$items"
+  else
+    print_items "$items"
+  fi
   return 0
 }
 

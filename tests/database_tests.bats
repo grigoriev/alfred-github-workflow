@@ -20,3 +20,11 @@ setup() {
   run bash -c '. src/database.sh; read_database'
   echo "$output" | jq -e '[.[].name] | index("alpha") != null and index("beta") != null' >/dev/null
 }
+
+@test "read_database: fresh within the ttl, stale past it" {
+  bash -c '. src/database.sh; rebuild_database'
+  run bash -c '. src/database.sh; read_database >/dev/null'
+  [ "$status" -eq 0 ]
+  run bash -c 'export DATABASE_TTL=0; . src/database.sh; read_database >/dev/null'
+  [ "$status" -eq 1 ]
+}

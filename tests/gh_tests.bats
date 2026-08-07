@@ -128,6 +128,14 @@ setup() {
   [ -f "$alfred_workflow_cache/issues_testorg_alpha.json" ]
 }
 
+@test "gh.sh: a stale database serves repos and asks for a rerun" {
+  mkdir -p "$alfred_workflow_data"
+  printf '[{"owner":"testorg","name":"alpha","nameWithOwner":"testorg/alpha","description":"","isPrivate":false,"pushedAt":"2024-01-01T00:00:00Z","url":"https://github.com/testorg/alpha"}]' > "$alfred_workflow_data/repos.json"
+  run bash -c 'export DATABASE_TTL=0; . src/gh.sh list "testorg/"'
+  echo "$output" | jq -e '.rerun == 0.5' >/dev/null
+  echo "$output" | jq -e '[.items[].title] | index("testorg/alpha") != null' >/dev/null
+}
+
 @test "gh.sh: a stale cache serves data and asks for a rerun" {
   mkdir -p "$alfred_workflow_cache"
   printf '[{"number":1,"title":"Cached issue"}]' > "$alfred_workflow_cache/issues_testorg_alpha.json"
