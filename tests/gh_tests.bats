@@ -128,6 +128,15 @@ setup() {
   [ -f "$alfred_workflow_cache/issues_testorg_alpha.json" ]
 }
 
+@test "gh.sh: a stale cache serves data and asks for a rerun" {
+  mkdir -p "$alfred_workflow_cache"
+  printf '[{"number":1,"title":"Cached issue"}]' > "$alfred_workflow_cache/issues_testorg_alpha.json"
+  touch -t 200001010000 "$alfred_workflow_cache/issues_testorg_alpha.json"
+  run bash -c '. src/gh.sh list "testorg/alpha #"'
+  echo "$output" | jq -e '.rerun == 0.4' >/dev/null
+  echo "$output" | jq -e '(.items | length) >= 1' >/dev/null
+}
+
 @test "gh.sh: # with no match shows a hint" {
   run bash -c '. src/gh.sh list "testorg/alpha #zzz"'
   echo "$output" | jq -e '.items[0].title == "No open issues or pull requests"' >/dev/null
