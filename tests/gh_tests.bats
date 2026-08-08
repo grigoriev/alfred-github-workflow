@@ -67,6 +67,11 @@ setup() {
   [ -f "$alfred_workflow_data/starred.json" ]
 }
 
+@test "gh.sh: repos are listed alphabetically, not by date" {
+  run bash -c '. src/gh.sh list "Starred/"'
+  echo "$output" | jq -e '[.items[].title] == ["octocat/hello", "torvalds/linux"]' >/dev/null
+}
+
 @test "gh.sh: Starred/ filters and drills into the real repo" {
   run bash -c '. src/gh.sh list "Starred/linux"'
   echo "$output" | jq -e '[.items[].title] == ["torvalds/linux"]' >/dev/null

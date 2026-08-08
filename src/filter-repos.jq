@@ -1,7 +1,8 @@
 # Filter repositories by a case-insensitive substring of "owner/name" and format
-# them as Alfred items. Repos absent from the visible list are dropped, pinned
-# repos are marked with a star and sorted to the top, and each item carries a cmd
-# modifier that hides it and an alt modifier that pins or unpins it.
+# them as Alfred items. Repos absent from the visible list are dropped, the rest
+# are sorted alphabetically, pinned repos are marked with a star and sorted to the
+# top, and each item carries a cmd modifier that hides it and an alt modifier that
+# pins or unpins it.
 # --arg q the query, --arg icon the icon path, --argjson visible a list of visible
 # "owner/name" strings or null for all, --argjson pinned a list of pinned strings,
 # --argjson hideable true to add the cmd hide modifier.
@@ -19,7 +20,7 @@ def matches($q):
 [ .[]
   | select($visible == null or (.nameWithOwner as $n | ($visible | index($n)) != null))
   | select(matches($q)) ]
-| sort_by(.pushedAt) | reverse
+| sort_by(.nameWithOwner | ascii_downcase)
 | map(. + { _pinned: (.nameWithOwner as $n | ($pinned | index($n)) != null) })
 | (map(select(._pinned)) + map(select(._pinned | not)))
 | map({
