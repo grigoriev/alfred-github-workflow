@@ -30,16 +30,11 @@ globals_menu() {
   local filter="$1"
   global_item "login"           "$filter" "Sign in"           "Run gh auth login in a terminal"  "auth login"      "yes" "$ICON_LOGIN"  ""
   global_item "logout"          "$filter" "Sign out"          "Run gh auth logout in a terminal" "auth logout"     "yes" "$ICON_LOGOUT" ""
-  global_item "update"          "$filter" "Check for updates" "Check for a new version"          ""                "no"  "$ICON_UPDATE" "> update"
   global_item "organizations orgs" "$filter" "Organizations"  "Edit the list of organizations"   ""                "no"  "$ICON_ORG"    "> orgs"
   global_item "hidden repos"    "$filter" "Hidden repositories" "Edit org lists and unhide repos" ""               "no"  "$ICON_REPO"   "> hidden"
   global_item "delete cache"    "$filter" "Delete cache"      "Drop cached API responses"        "delete cache"    "yes" "$ICON_TRASH"  ""
   global_item "delete database" "$filter" "Delete database"   "Rebuild the repository list"      "delete database" "yes" "$ICON_TRASH"  ""
-  if autoupdate_enabled; then
-    global_item "deactivate autoupdate" "$filter" "Deactivate autoupdate" "Stop checking automatically" "autoupdate off" "yes" "$ICON_UPDATE" ""
-  else
-    global_item "activate autoupdate"   "$filter" "Activate autoupdate"   "Check automatically"         "autoupdate on"  "yes" "$ICON_UPDATE" ""
-  fi
+  autoupdate_menu "$filter" "$ICON_UPDATE"
   get_json_results
   return 0
 }
