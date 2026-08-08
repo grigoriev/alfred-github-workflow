@@ -46,40 +46,100 @@ print_items() {
   return 0
 }
 
-# Path to the hidden-repositories list.
-hidden_file() {
-  printf '%s/hidden' "${alfred_workflow_data:-.}"
+# Directory holding one visible-repositories file per organization.
+visible_dir() {
+  printf '%s/visible' "${alfred_workflow_data:-.}"
   return 0
 }
 
-# Print the hidden repositories as a JSON array.
-hidden_json() {
+# Path to an organization's visible-repositories file.
+org_file() {
+  printf '%s/%s' "$(visible_dir)" "$1"
+  return 0
+}
+
+# Sync an org's file with the database. On first run list every repo
+# uncommented (visible). Later, append repos not yet listed as commented
+# (hidden, pending review), so new org repos never appear silently and a
+# deleted line comes back commented instead of resurfacing.
+sync_org() {
+  local org="$1" repos_json="$2" file orgrepos existing new
+  file="$(org_file "$org")"
+  orgrepos="$(jq -r --arg o "$org" '.[] | select(.owner == $o) | .nameWithOwner' <<< "$repos_json" 2>/dev/null | sort -u)"
+  [[ -n "$orgrepos" ]] || return 0
+  mkdir -p "$(visible_dir)"
+  if [[ ! -f "$file" ]]; then
+    {
+      printf '%s\n' "# Repositories for $org shown in the list."
+      printf '%s\n' "# Delete or comment a line (#) to hide that repo."
+      printf '%s\n' "$orgrepos"
+    } > "$file"
+    return 0
+  fi
+  existing="$(sed -E 's/^#[[:space:]]*//' "$file" | grep -vE '^[[:space:]]*$' | sort -u)"
+  new="$(comm -23 <(printf '%s\n' "$orgrepos") <(printf '%s\n' "$existing") || true)"
+  [[ -n "$new" ]] && printf '%s\n' "$new" | sed 's/^/#/' >> "$file"
+  return 0
+}
+
+# Print an org's visible repositories (uncommented lines) as a JSON array, or
+# null when the org has no file yet, meaning show everything.
+org_visible_json() {
   local file
-  file="$(hidden_file)"
+  file="$(org_file "$1")"
   if [[ -f "$file" ]]; then
-    jq -Rn '[inputs | select(length > 0)]' < "$file"
+    grep -vE '^[[:space:]]*(#.*)?$' "$file" | jq -Rn '[inputs | select(length > 0)]'
   else
-    printf '[]'
+    printf 'null'
   fi
   return 0
 }
 
-# Add a repo to the hidden list (deduplicated).
-hide_repo() {
-  local repo="$1" file
-  file="$(hidden_file)"
-  mkdir -p "${alfred_workflow_data:-.}"
-  grep -qxF "$repo" "$file" 2>/dev/null || printf '%s\n' "$repo" >> "$file"
+# Print hidden repo names: commented "owner/repo" lines across all org files.
+hidden_repos() {
+  local dir
+  dir="$(visible_dir)"
+  [[ -d "$dir" ]] || return 0
+  grep -hE '^#[^#[:space:]].*/' "$dir"/* 2>/dev/null | sed -E 's/^#[[:space:]]*//' | sort -u || true
   return 0
 }
 
-# Remove a repo from the hidden list.
-unhide_repo() {
-  local repo="$1" file kept
-  file="$(hidden_file)"
+# Hide a repo: drop its visible line and ensure a commented entry.
+hide_repo() {
+  local repo="$1" org file kept
+  org="${repo%%/*}"
+  file="$(org_file "$org")"
   [[ -f "$file" ]] || return 0
   kept="$(grep -vxF "$repo" "$file" || true)"
-  printf '%s' "$kept" > "$file"
+  printf '%s\n' "$kept" > "$file"
+  grep -qxF "#$repo" "$file" || printf '#%s\n' "$repo" >> "$file"
+  return 0
+}
+
+# Unhide a repo: drop its commented entry and ensure a visible line.
+unhide_repo() {
+  local repo="$1" org file kept
+  org="${repo%%/*}"
+  file="$(org_file "$org")"
+  mkdir -p "$(visible_dir)"
+  [[ -f "$file" ]] || : > "$file"
+  kept="$(grep -vxF "#$repo" "$file" || true)"
+  printf '%s\n' "$kept" > "$file"
+  grep -qxF "$repo" "$file" || printf '%s\n' "$repo" >> "$file"
+  return 0
+}
+
+# Open an org's visible-repositories file in a text editor to hide many at once.
+edit_visible() {
+  local org repos file
+  org="$1"
+  [[ -n "$org" ]] || return 0
+  repos="$(read_database 2>/dev/null || true)"
+  [[ -n "$repos" ]] && sync_org "$org" "$repos"
+  file="$(org_file "$org")"
+  mkdir -p "$(visible_dir)"
+  [[ -f "$file" ]] || : > "$file"
+  open -e "$file"
   return 0
 }
 
@@ -95,15 +155,19 @@ list_orgs() {
   return 0
 }
 
-# List the hidden repositories; selecting one unhides it.
+# List per-org edit entries and the hidden repositories; enter unhides a repo.
 list_hidden() {
-  local repo found=0
+  local org repo found=0
+  while IFS= read -r org; do
+    [[ -n "$org" ]] || continue
+    add_result "" "edit-visible $org" "Edit $org repositories" "Open the list to hide many at once" "$ICON_ORG" "yes"
+  done < <(configured_orgs)
   while IFS= read -r repo; do
     [[ -n "$repo" ]] || continue
     found=1
     add_result "" "unhide $repo" "$repo" "Press enter to unhide" "$ICON_REPO" "yes"
-  done < <(hidden_json | jq -r '.[]')
-  [[ "$found" -eq 1 ]] || add_result "" "" "No hidden repositories" "Hide a repo with cmd on its item" "$ICON_REPO" "no"
+  done < <(hidden_repos)
+  [[ "$found" -eq 1 ]] || add_result "" "" "No hidden repositories" "Hide a repo with cmd, or edit an org list above" "$ICON_REPO" "no"
   get_json_results
   return 0
 }
@@ -147,7 +211,8 @@ unpin_repo() {
 
 # The repository picker for "owner/partial": filter the database and print items.
 repo_picker() {
-  local query="$1" repos items hidden pinned stale
+  local query="$1" owner repos items visible pinned stale
+  owner="${query%%/*}"
   repos="$(read_database)"
   stale=$?
   if [[ "$stale" -eq 1 ]]; then
@@ -155,9 +220,10 @@ repo_picker() {
     ( rebuild_database ) >/dev/null 2>&1 &
     disown 2>/dev/null || true
   fi
-  hidden="$(hidden_json)"
+  sync_org "$owner" "$repos"
+  visible="$(org_visible_json "$owner")"
   pinned="$(pinned_json)"
-  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson hidden "$hidden" --argjson pinned "$pinned" <<< "$repos")"
+  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson visible "$visible" --argjson pinned "$pinned" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     if gh_authed; then
       add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
@@ -330,6 +396,7 @@ if [[ "$mode" == "run" ]]; then
     auth) run_auth "$payload" ;;
     delete) run_delete "$payload" ;;
     edit-orgs) edit_orgs ;;
+    edit-visible) edit_visible "$payload" ;;
     autoupdate) set_autoupdate "$payload" ;;
     hide) hide_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
     unhide) unhide_repo "$payload"; alfred_search "gh > hidden" ;;

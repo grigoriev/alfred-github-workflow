@@ -25,11 +25,11 @@ setup() {
 }
 
 @test "gh.sh: > hidden lists hidden repos with an unhide action" {
-  mkdir -p "$alfred_workflow_data"
-  printf 'testorg/beta\n' > "$alfred_workflow_data/hidden"
+  mkdir -p "$alfred_workflow_data/visible"
+  printf '#testorg/beta\n' > "$alfred_workflow_data/visible/testorg"
   run bash -c '. src/gh.sh list "> hidden"'
-  echo "$output" | jq -e '.items[0].title == "testorg/beta"' >/dev/null
-  echo "$output" | jq -e '.items[0].arg == "unhide testorg/beta"' >/dev/null
+  echo "$output" | jq -e '[.items[].title] | index("testorg/beta") != null' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="testorg/beta") | .arg == "unhide testorg/beta"' >/dev/null
 }
 
 @test "gh.sh: > hidden with none shows a hint" {

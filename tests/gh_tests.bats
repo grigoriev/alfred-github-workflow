@@ -165,10 +165,34 @@ setup() {
 }
 
 @test "gh.sh: hiding a repo removes it from the picker" {
+  run bash -c '. src/gh.sh list "testorg/"'
   run bash -c '. src/gh.sh run "hide testorg/beta"'
-  [ -f "$alfred_workflow_data/hidden" ]
+  [ -f "$alfred_workflow_data/visible/testorg" ]
   run bash -c '. src/gh.sh list "testorg/"'
   echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: new org repos are synced in as commented and hidden" {
+  run bash -c '. src/gh.sh list "testorg/"'
+  printf 'testorg/alpha\n' > "$alfred_workflow_data/visible/testorg"
+  run bash -c '. src/gh.sh list "testorg/"'
+  grep -qxF '#testorg/beta' "$alfred_workflow_data/visible/testorg"
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: > hidden lists an org edit item and hidden repos" {
+  run bash -c '. src/gh.sh list "testorg/"'
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  run bash -c '. src/gh.sh list "> hidden"'
+  echo "$output" | jq -e '[.items[].title] | index("Edit testorg repositories") != null' >/dev/null
+  echo "$output" | jq -e '[.items[].title] | index("testorg/beta") != null' >/dev/null
+}
+
+@test "gh.sh: edit-visible opens the org file in an editor" {
+  export OPEN_LOG="$BATS_TEST_TMPDIR/open.log"
+  run bash -c '. src/gh.sh run "edit-visible testorg"'
+  [ -f "$alfred_workflow_data/visible/testorg" ]
+  grep -q "visible/testorg" "$OPEN_LOG"
 }
 
 @test "gh.sh: hiding reopens the org list so the window stays open" {
@@ -178,6 +202,7 @@ setup() {
 }
 
 @test "gh.sh: unhiding a repo restores it" {
+  run bash -c '. src/gh.sh list "testorg/"'
   run bash -c '. src/gh.sh run "hide testorg/beta"'
   run bash -c '. src/gh.sh run "unhide testorg/beta"'
   run bash -c '. src/gh.sh list "testorg/"'
