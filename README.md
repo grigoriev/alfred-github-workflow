@@ -45,6 +45,7 @@ profile. That shaped a few choices:
 gh                     browse the configured organizations
 gh int                 filter organizations
 gh intechcore/         list the organization's repositories
+gh Starred/            list your starred repositories
 gh owner/repo          open the repo menu (⏎): open, issues, pulls, ...
 gh owner/repo #123     open an issue or pull request
 gh owner/repo @branch  open a branch
@@ -65,7 +66,8 @@ also unhides a single repo with <kbd>⏎</kbd>.
 
 Set the organizations with `gh > orgs`. It opens `<workflow data>/orgs` in a text
 editor. Write one organization or user per line; `#` lines are ignored. The list
-starts empty, so add your own.
+starts empty, so add your own. Add a `Starred` line to place your starred
+repositories at that position; `gh Starred/` also works without it.
 
 Each organization has a visible-repositories file in `<workflow data>/visible/`.
 An uncommented `owner/repo` line shows the repo; a commented or deleted line

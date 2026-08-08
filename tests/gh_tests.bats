@@ -13,8 +13,22 @@ setup() {
 @test "gh.sh: lists configured orgs for an empty query" {
   run bash -c '. src/gh.sh list ""'
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '[.items[].title] == ["testorg"]' >/dev/null
-  echo "$output" | jq -e '.items[0].autocomplete == "testorg/"' >/dev/null
+  echo "$output" | jq -e '[.items[].title] | index("testorg") != null' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="testorg") | .autocomplete == "testorg/"' >/dev/null
+}
+
+@test "gh.sh: a Starred line in the orgs file positions the pseudo-org" {
+  printf 'testorg\nStarred\n' > "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list ""'
+  echo "$output" | jq -e '[.items[].title] == ["testorg", "Starred"]' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="Starred") | .autocomplete == "Starred/"' >/dev/null
+  run bash -c '. src/gh.sh list "star"'
+  echo "$output" | jq -e '[.items[].title] == ["Starred"]' >/dev/null
+}
+
+@test "gh.sh: no Starred line means no starred pseudo-org in the list" {
+  run bash -c '. src/gh.sh list ""'
+  echo "$output" | jq -e '[.items[].title] | index("Starred") == null' >/dev/null
 }
 
 @test "gh.sh: filters orgs by prefix" {
@@ -45,6 +59,24 @@ setup() {
   run bash -c '. src/gh.sh list "testorg/al"'
   echo "$output" | jq -e '.items[0].valid == false' >/dev/null
   echo "$output" | jq -e '.items[0].autocomplete == "testorg/alpha "' >/dev/null
+}
+
+@test "gh.sh: Starred/ lists the user's starred repos" {
+  run bash -c '. src/gh.sh list "Starred/"'
+  echo "$output" | jq -e '[.items[].title] | index("octocat/hello") != null and index("torvalds/linux") != null' >/dev/null
+  [ -f "$alfred_workflow_data/starred.json" ]
+}
+
+@test "gh.sh: Starred/ filters and drills into the real repo" {
+  run bash -c '. src/gh.sh list "Starred/linux"'
+  echo "$output" | jq -e '[.items[].title] == ["torvalds/linux"]' >/dev/null
+  echo "$output" | jq -e '.items[0].autocomplete == "torvalds/linux "' >/dev/null
+}
+
+@test "gh.sh: starred items pin but do not offer hide" {
+  run bash -c '. src/gh.sh list "Starred/hello"'
+  echo "$output" | jq -e '.items[0].mods.alt.arg == "pin octocat/hello"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods | has("cmd") | not' >/dev/null
 }
 
 @test "gh.sh: unknown owner shows a no-repositories hint" {

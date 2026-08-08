@@ -31,10 +31,12 @@ add_org_items() {
   while IFS= read -r org; do
     [[ -n "$org" ]] || continue
     lc_org="$(printf '%s' "$org" | tr '[:upper:]' '[:lower:]')"
-    case "$lc_org" in
-      "$lc_filter"*) add_result "" "" "$org" "Browse $org repositories" "$ICON_ORG" "no" "$org/" ;;
-      *) : ;;
-    esac
+    [[ "$lc_org" == "$lc_filter"* ]] || continue
+    if [[ "$lc_org" == "starred" ]]; then
+      add_result "" "" "Starred" "Browse your starred repositories" "$ICON_STAR" "no" "Starred/"
+    else
+      add_result "" "" "$org" "Browse $org repositories" "$ICON_ORG" "no" "$org/"
+    fi
   done < <(configured_orgs)
   return 0
 }
@@ -209,24 +211,16 @@ unpin_repo() {
   return 0
 }
 
-# The repository picker for "owner/partial": filter the database and print items.
-repo_picker() {
-  local query="$1" owner repos items visible pinned stale
-  owner="${query%%/*}"
-  repos="$(read_database)"
-  stale=$?
-  if [[ "$stale" -eq 1 ]]; then
-    # serve the stale list now and rebuild in the background for the rerun
-    ( rebuild_database ) >/dev/null 2>&1 &
-    disown 2>/dev/null || true
-  fi
-  sync_org "$owner" "$repos"
-  visible="$(org_visible_json "$owner")"
+# Filter a repos JSON array with filter-repos.jq and print the Script Filter
+# feedback. $4 visible is a JSON allowlist or null, $5 hideable adds the cmd hide
+# modifier, $6 empty is the "nothing found" subtitle.
+render_repos() {
+  local query="$1" repos="$2" stale="$3" visible="$4" hideable="$5" empty="$6" items pinned
   pinned="$(pinned_json)"
-  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson visible "$visible" --argjson pinned "$pinned" <<< "$repos")"
+  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson visible "$visible" --argjson pinned "$pinned" --argjson hideable "$hideable" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     if gh_authed; then
-      add_result "" "" "No repositories found" "Check the org name, or rebuild the database" "$ICON_REPO" "no"
+      add_result "" "" "No repositories found" "$empty" "$ICON_REPO" "no"
     else
       add_result "" "auth login" "Not signed in to GitHub" "Press enter to run gh auth login in a terminal" "$ICON_LOGIN" "yes"
     fi
@@ -239,6 +233,39 @@ repo_picker() {
   else
     print_items "$items"
   fi
+  return 0
+}
+
+# The repository picker for "owner/partial": filter the database and print items.
+repo_picker() {
+  local query="$1" owner repos visible stale
+  owner="${query%%/*}"
+  repos="$(read_database)"
+  stale=$?
+  if [[ "$stale" -eq 1 ]]; then
+    # serve the stale list now and rebuild in the background for the rerun
+    ( rebuild_database ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  fi
+  sync_org "$owner" "$repos"
+  visible="$(org_visible_json "$owner")"
+  render_repos "$query" "$repos" "$stale" "$visible" true "Check the org name, or rebuild the database"
+  return 0
+}
+
+# The picker for "Starred/partial": filter the user's starred repositories. The
+# starred repos keep their real owner, so match the text after "Starred/" against
+# the whole "owner/name" instead of treating "Starred" as the owner.
+starred_picker() {
+  local query="$1" q repos stale
+  q="${query#Starred/}"
+  repos="$(read_starred)"
+  stale=$?
+  if [[ "$stale" -eq 1 ]]; then
+    ( rebuild_starred ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  fi
+  render_repos "$q" "$repos" "$stale" null false "Star repositories on GitHub to see them here"
   return 0
 }
 
@@ -434,8 +461,12 @@ elif [[ "$query" == *" "* ]] && [[ "${query%% *}" == */?* ]]; then
   rest="${rest# }"
   repo_scoped "$first" "$rest"
 elif [[ "$query" == *"/"* ]]; then
-  # owner/partial -> repo picker
-  repo_picker "$query"
+  # owner/partial -> repo picker (Starred is a virtual collection)
+  if [[ "${query%%/*}" == "Starred" ]]; then
+    starred_picker "$query"
+  else
+    repo_picker "$query"
+  fi
 else
   # bare query -> matching orgs, with an optional update banner on the home view
   if [[ -z "$query" ]]; then

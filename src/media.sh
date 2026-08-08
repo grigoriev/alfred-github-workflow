@@ -3,6 +3,7 @@
 # Icon paths, generated from Octicons by "make icons". See .github/build-icons.sh.
 ICON_ORG="icons/org.png"
 ICON_REPO="icons/repo.png"
+ICON_STAR="icons/star.png"
 ICON_ISSUE="icons/issue.png"
 ICON_PULL="icons/pull.png"
 ICON_BRANCH="icons/branch.png"
