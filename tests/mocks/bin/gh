@@ -21,6 +21,9 @@ JSON
   api)
     # api <path>
     case "$2" in
+      user)
+        printf 'testuser'
+        ;;
       user/starred*)
         cat <<'JSON'
 [{"full_name":"octocat/hello","name":"hello","description":"Hi","private":false,"pushed_at":"2024-05-01T00:00:00Z","html_url":"https://github.com/octocat/hello","owner":{"login":"octocat"}},{"full_name":"torvalds/linux","name":"linux","description":"Kernel","private":false,"pushed_at":"2024-06-01T00:00:00Z","html_url":"https://github.com/torvalds/linux","owner":{"login":"torvalds"}}]

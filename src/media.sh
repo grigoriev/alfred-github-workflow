@@ -4,6 +4,8 @@
 ICON_ORG="icons/org.png"
 ICON_REPO="icons/repo.png"
 ICON_STAR="icons/star.png"
+ICON_USER="icons/user.png"
+ICON_ALL="icons/all.png"
 ICON_ISSUE="icons/issue.png"
 ICON_PULL="icons/pull.png"
 ICON_BRANCH="icons/branch.png"

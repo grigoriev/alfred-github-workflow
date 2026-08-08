@@ -27,8 +27,11 @@ rebuild_database() {
   all="[]"
   while IFS= read -r org; do
     [[ -n "$org" ]] || continue
-    # "Starred" is a virtual collection, not a real org to query
-    [[ "$(printf '%s' "$org" | tr '[:upper:]' '[:lower:]')" == "starred" ]] && continue
+    # "@..." lines are virtual collections, not real orgs to query
+    case "$org" in
+      @*) continue ;;
+      *) : ;;
+    esac
     data="$(gh_repo_list "$org")"
     [[ -n "$data" ]] || continue
     all="$(jq -cn --argjson a "$all" --argjson b "$data" '$a + $b')"

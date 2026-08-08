@@ -18,7 +18,7 @@ setup() {
 }
 
 @test "gh.sh: a Starred line in the orgs file positions the pseudo-org" {
-  printf 'testorg\nStarred\n' > "$alfred_workflow_data/orgs"
+  printf 'testorg\n@Starred\n' > "$alfred_workflow_data/orgs"
   run bash -c '. src/gh.sh list ""'
   echo "$output" | jq -e '[.items[].title] == ["testorg", "Starred"]' >/dev/null
   echo "$output" | jq -e '.items[] | select(.title=="Starred") | .autocomplete == "Starred/"' >/dev/null
@@ -29,6 +29,33 @@ setup() {
 @test "gh.sh: no Starred line means no starred pseudo-org in the list" {
   run bash -c '. src/gh.sh list ""'
   echo "$output" | jq -e '[.items[].title] | index("Starred") == null' >/dev/null
+}
+
+@test "gh.sh: a My line in the orgs file positions the pseudo-org" {
+  printf 'testorg\n@My\n' > "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list ""'
+  echo "$output" | jq -e '[.items[].title] == ["testorg", "My"]' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="My") | .autocomplete == "My/"' >/dev/null
+}
+
+@test "gh.sh: My/ lists the user's pages, opening them in the browser" {
+  printf '@My\n' >> "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "My/"'
+  echo "$output" | jq -e '[.items[].title] | index("My pull requests") != null and index("My issues") != null and index("My notifications") != null' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="My pull requests") | .arg == "open https://github.com/pulls"' >/dev/null
+}
+
+@test "gh.sh: My/ includes login-based pages and caches the login" {
+  printf '@My\n' >> "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "My/"'
+  echo "$output" | jq -e '.items[] | select(.title=="My profile") | .arg == "open https://github.com/testuser"' >/dev/null
+  [ -f "$alfred_workflow_data/login" ]
+}
+
+@test "gh.sh: My/ filters its items" {
+  printf '@My\n' >> "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "My/pull"'
+  echo "$output" | jq -e '[.items[].title] == ["My pull requests"]' >/dev/null
 }
 
 @test "gh.sh: filters orgs by prefix" {
@@ -62,25 +89,43 @@ setup() {
 }
 
 @test "gh.sh: Starred/ lists the user's starred repos" {
+  printf '@Starred\n' >> "$alfred_workflow_data/orgs"
   run bash -c '. src/gh.sh list "Starred/"'
   echo "$output" | jq -e '[.items[].title] | index("octocat/hello") != null and index("torvalds/linux") != null' >/dev/null
   [ -f "$alfred_workflow_data/starred.json" ]
 }
 
 @test "gh.sh: repos are listed alphabetically, not by date" {
+  printf '@Starred\n' >> "$alfred_workflow_data/orgs"
   run bash -c '. src/gh.sh list "Starred/"'
   echo "$output" | jq -e '[.items[].title] == ["octocat/hello", "torvalds/linux"]' >/dev/null
 }
 
 @test "gh.sh: Starred/ filters and drills into the real repo" {
+  printf '@Starred\n' >> "$alfred_workflow_data/orgs"
   run bash -c '. src/gh.sh list "Starred/linux"'
   echo "$output" | jq -e '[.items[].title] == ["torvalds/linux"]' >/dev/null
   echo "$output" | jq -e '.items[0].autocomplete == "torvalds/linux "' >/dev/null
 }
 
 @test "gh.sh: starred items pin but do not offer hide" {
+  printf '@Starred\n' >> "$alfred_workflow_data/orgs"
   run bash -c '. src/gh.sh list "Starred/hello"'
   echo "$output" | jq -e '.items[0].mods.alt.arg == "pin octocat/hello"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods | has("cmd") | not' >/dev/null
+}
+
+@test "gh.sh: an unconfigured pseudo-org does not work when typed by hand" {
+  run bash -c '. src/gh.sh list "Starred/"'
+  echo "$output" | jq -e '[.items[].title] | index("octocat/hello") == null' >/dev/null
+}
+
+@test "gh.sh: All/ searches across orgs and excludes hidden repos" {
+  printf 'testorg\n@All\n' > "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "testorg/"'
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  run bash -c '. src/gh.sh list "All/a"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
   echo "$output" | jq -e '.items[0].mods | has("cmd") | not' >/dev/null
 }
 
