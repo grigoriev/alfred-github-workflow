@@ -1,9 +1,9 @@
 # Filter repositories by a case-insensitive substring of "owner/name" and format
-# them as Alfred items. Hidden repos are dropped, pinned repos are marked with a
-# star and sorted to the top, and each item carries a cmd modifier that hides it
-# and an alt modifier that pins or unpins it.
-# --arg q the query, --arg icon the icon path, --argjson hidden a list of hidden
-# "owner/name" strings, --argjson pinned a list of pinned "owner/name" strings.
+# them as Alfred items. Repos absent from the visible list are dropped, pinned
+# repos are marked with a star and sorted to the top, and each item carries a cmd
+# modifier that hides it and an alt modifier that pins or unpins it.
+# --arg q the query, --arg icon the icon path, --argjson visible a list of visible
+# "owner/name" strings or null for all, --argjson pinned a list of pinned strings.
 # Match owner and repo name separately, so "owner/pdf" finds a repo whose name
 # contains "pdf" anywhere, not only names that start with it.
 def matches($q):
@@ -16,7 +16,7 @@ def matches($q):
         else (.nameWithOwner | ascii_downcase | contains($lq))
         end);
 [ .[]
-  | select(.nameWithOwner as $n | ($hidden | index($n)) == null)
+  | select($visible == null or (.nameWithOwner as $n | ($visible | index($n)) != null))
   | select(matches($q)) ]
 | sort_by(.pushedAt) | reverse
 | map(. + { _pinned: (.nameWithOwner as $n | ($pinned | index($n)) != null) })

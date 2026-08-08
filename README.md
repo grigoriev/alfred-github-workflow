@@ -56,15 +56,21 @@ gh >                   global commands (login, logout, update, ...)
 ```
 
 Hold <kbd>⌘</kbd> on a repository and press <kbd>⏎</kbd> to hide it from the
-list, or <kbd>⌥</kbd> to pin it to the top (marked with a star). Manage hidden
-repositories with `gh > hidden`, where <kbd>⏎</kbd> unhides.
+list, or <kbd>⌥</kbd> to pin it to the top (marked with a star). To hide many at
+once, open `gh > hidden` and pick an organization to edit its list in a text
+editor, then delete or comment (`#`) the repos you want hidden. `gh > hidden`
+also unhides a single repo with <kbd>⏎</kbd>.
 
 ## Configuration
 
 Set the organizations with `gh > orgs`. It opens `<workflow data>/orgs` in a text
 editor. Write one organization or user per line; `#` lines are ignored. The list
-starts empty, so add your own. Hidden repositories are stored in
-`<workflow data>/hidden`.
+starts empty, so add your own.
+
+Each organization has a visible-repositories file in `<workflow data>/visible/`.
+An uncommented `owner/repo` line shows the repo; a commented or deleted line
+hides it. New repos in an organization are added commented, so they never appear
+without review. Edit these files with `gh > hidden`.
 
 ## Caching
 
