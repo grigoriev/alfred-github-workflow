@@ -439,10 +439,13 @@ repo_menu() {
   section_item open        "$filter" "Open $repo"     "Open the repository home"      "open $base"             "$ICON_REPO"
   section_item issues      "$filter" "Issues"         "Open issues"                   "open $base/issues"      "$ICON_ISSUE"
   section_item pulls       "$filter" "Pull requests"  "Open pull requests"            "open $base/pulls"       "$ICON_PULL"
+  section_item branches    "$filter" "Branches"       "Open the branches list"        "open $base/branches"    "$ICON_BRANCH"
   section_item actions     "$filter" "Actions"        "Open workflow runs"            "open $base/actions"     "$ICON_ACTIONS"
   section_item releases    "$filter" "Releases"       "Open releases"                 "open $base/releases"    "$ICON_RELEASE"
+  section_item tags        "$filter" "Tags"           "Open tags"                     "open $base/tags"        "$ICON_TAG"
   section_item milestones  "$filter" "Milestones"     "Open milestones"               "open $base/milestones"  "$ICON_MILESTONE"
   section_item discussions "$filter" "Discussions"    "Open discussions"              "open $base/discussions" "$ICON_DISCUSSION"
+  section_item security    "$filter" "Security"       "Open the security overview"    "open $base/security"    "$ICON_SECURITY"
   section_item admin       "$filter" "Settings"       "Open repository settings"      "open $base/settings"    "$ICON_ADMIN"
   section_item clone       "$filter" "Copy clone URL" "Copy git@github.com:$repo.git" "copy git@github.com:$repo.git" "$ICON_CLONE"
   if [[ -z "$filter" ]]; then

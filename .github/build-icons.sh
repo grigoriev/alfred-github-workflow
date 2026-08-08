@@ -47,7 +47,8 @@ actions:workflow-24:$BLUE admin:gear-24:$GRAY clone:download-24:$BLUE \
 discussion:comment-discussion-24:$BLUE milestone:milestone-24:$GREEN \
 release:tag-24:$GREEN update:sync-24:$BLUE login:sign-in-24:$GREEN \
 logout:sign-out-24:$GRAY trash:trash-24:$RED star:star-fill-24:$GOLD \
-user:person-24:$GRAY all:search-24:$GRAY"
+user:person-24:$GRAY all:search-24:$GRAY tag:tag-24:$GRAY \
+security:shield-24:$GRAY"
 
 echo "generating item icons..."
 for entry in $icons; do
