@@ -32,6 +32,7 @@ rebuild_database() {
       @*) continue ;;
       *) : ;;
     esac
+    cache_account_type "$org"
     data="$(gh_repo_list "$org")"
     [[ -n "$data" ]] || continue
     all="$(jq -cn --argjson a "$all" --argjson b "$data" '$a + $b')"
