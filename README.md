@@ -56,8 +56,9 @@ gh > orgs              edit the list of organizations
 gh >                   global commands (login, logout, update, ...)
 ```
 
-Hold <kbd>⌘</kbd> on a repository and press <kbd>⏎</kbd> to hide it from the
-list, or <kbd>⌥</kbd> to pin it to the top (marked with a star). To hide many at
+Repositories are listed alphabetically. Hold <kbd>⌘</kbd> on a repository and
+press <kbd>⏎</kbd> to hide it from the list, or <kbd>⌥</kbd> to pin it to the top
+(marked with a star). To hide many at
 once, open `gh > hidden` and pick an organization to edit its list in a text
 editor, then delete or comment (`#`) the repos you want hidden. `gh > hidden`
 also unhides a single repo with <kbd>⏎</kbd>.
