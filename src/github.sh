@@ -59,3 +59,22 @@ gh_starred() {
   "$gh" api user/starred --paginate 2>/dev/null || printf '[]'
   return 0
 }
+
+# Print the authenticated user's login, cached in the data dir after the first
+# lookup so the "My" pages resolve without a network call every time.
+gh_login() {
+  local file gh login
+  file="${alfred_workflow_data:-.}/login"
+  if [[ -s "$file" ]]; then
+    cat "$file"
+    return 0
+  fi
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || return 0
+  login="$("$gh" api user --jq .login 2>/dev/null)"
+  [[ -n "$login" ]] || return 0
+  mkdir -p "${alfred_workflow_data:-.}"
+  printf '%s' "$login" > "$file"
+  printf '%s' "$login"
+  return 0
+}

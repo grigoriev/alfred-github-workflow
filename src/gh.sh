@@ -25,18 +25,24 @@ query="$2"
 
 # Queue the configured orgs whose name matches the query prefix. Selecting one
 # is drill-in only (valid=no), autocompleting "owner/" to list its repos.
+# Queue the orgs matching the query. A pseudo-org is written "@name" in the file
+# so it is distinct from real orgs, but shows as a plain name like "Starred".
 add_org_items() {
-  local filter="$1" org lc_filter lc_org
+  local filter="$1" org lc_filter lc_org name icon auto sub lc_name
   lc_filter="$(printf '%s' "$filter" | tr '[:upper:]' '[:lower:]')"
   while IFS= read -r org; do
     [[ -n "$org" ]] || continue
     lc_org="$(printf '%s' "$org" | tr '[:upper:]' '[:lower:]')"
-    [[ "$lc_org" == "$lc_filter"* ]] || continue
-    if [[ "$lc_org" == "starred" ]]; then
-      add_result "" "" "Starred" "Browse your starred repositories" "$ICON_STAR" "no" "Starred/"
-    else
-      add_result "" "" "$org" "Browse $org repositories" "$ICON_ORG" "no" "$org/"
-    fi
+    case "$lc_org" in
+      @starred) name="Starred"; icon="$ICON_STAR"; auto="Starred/"; sub="Browse your starred repositories" ;;
+      @my)      name="My";      icon="$ICON_USER"; auto="My/";      sub="Your pull requests, issues, notifications" ;;
+      @all)     name="All";     icon="$ICON_ALL";  auto="All/";     sub="Search repositories across every organization" ;;
+      @*)       continue ;;
+      *)        name="$org";    icon="$ICON_ORG";  auto="$org/";    sub="Browse $org repositories" ;;
+    esac
+    lc_name="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+    [[ "$lc_name" == "$lc_filter"* ]] || continue
+    add_result "" "" "$name" "$sub" "$icon" "no" "$auto"
   done < <(configured_orgs)
   return 0
 }
@@ -258,7 +264,7 @@ repo_picker() {
 # the whole "owner/name" instead of treating "Starred" as the owner.
 starred_picker() {
   local query="$1" q repos stale
-  q="${query#Starred/}"
+  q="${query#*/}"
   repos="$(read_starred)"
   stale=$?
   if [[ "$stale" -eq 1 ]]; then
@@ -266,6 +272,66 @@ starred_picker() {
     disown 2>/dev/null || true
   fi
   render_repos "$q" "$repos" "$stale" null false "Star repositories on GitHub to see them here"
+  return 0
+}
+
+# The picker for "All/partial": search repositories across every configured org.
+# Hidden repos are excluded; the query after "All/" matches "owner/name".
+all_picker() {
+  local query="$1" q repos hidden visible stale
+  q="${query#*/}"
+  repos="$(read_database)"
+  stale=$?
+  if [[ "$stale" -eq 1 ]]; then
+    ( rebuild_database ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  fi
+  hidden="$(hidden_repos | jq -Rn '[inputs | select(length > 0)]')"
+  visible="$(jq -c --argjson hidden "$hidden" '[.[].nameWithOwner] - $hidden' <<< "$repos" 2>/dev/null)"
+  [[ -n "$visible" ]] || visible="null"
+  render_repos "$q" "$repos" "$stale" "$visible" false "No repositories found"
+  return 0
+}
+
+# Succeed when an organization (case-insensitive) is in the configured list.
+org_configured() {
+  local target="$1"
+  configured_orgs | tr '[:upper:]' '[:lower:]' | grep -qxF "$target"
+}
+
+# Succeed when the owner names a pseudo-org that is present in the orgs file, so
+# a pseudo-org that is not configured does not work even when typed by hand.
+pseudo_org_active() {
+  local lc
+  lc="$(gh_lower "$1")"
+  case "$lc" in
+    starred|my|all) org_configured "@$lc" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Queue a "My" page when its title contains the filter. $1 filter $2 title $3 url.
+my_item() {
+  local filter="$1" title="$2" url="$3"
+  case "$(gh_lower "$title")" in
+    *"$(gh_lower "$filter")"*) add_result "" "open $url" "$title" "$url" "$ICON_USER" "yes" ;;
+    *) : ;;
+  esac
+  return 0
+}
+
+# The menu for "My/partial": the user's own GitHub pages, opened in the browser.
+my_menu() {
+  local filter="$1" login
+  my_item "$filter" "My pull requests" "https://github.com/pulls"
+  my_item "$filter" "My issues" "https://github.com/issues"
+  my_item "$filter" "My notifications" "https://github.com/notifications"
+  login="$(gh_login)"
+  if [[ -n "$login" ]]; then
+    my_item "$filter" "My repositories" "https://github.com/$login?tab=repositories"
+    my_item "$filter" "My profile" "https://github.com/$login"
+  fi
+  get_json_results
   return 0
 }
 
@@ -454,6 +520,15 @@ if [[ "$query" == ">"* ]]; then
   else
     globals_menu "$sub"
   fi
+elif [[ "$query" == *"/"* ]] && pseudo_org_active "${query%%/*}"; then
+  # a configured pseudo-org (checked before repo-scoped so a space in the filter
+  # is not mistaken for "owner/repo <sub>")
+  case "$(gh_lower "${query%%/*}")" in
+    starred) starred_picker "$query" ;;
+    my)      my_menu "${query#*/}" ;;
+    all)     all_picker "$query" ;;
+    *) : ;;
+  esac
 elif [[ "$query" == *" "* ]] && [[ "${query%% *}" == */?* ]]; then
   # owner/repo <subquery> -> repo-scoped
   first="${query%% *}"
@@ -461,12 +536,8 @@ elif [[ "$query" == *" "* ]] && [[ "${query%% *}" == */?* ]]; then
   rest="${rest# }"
   repo_scoped "$first" "$rest"
 elif [[ "$query" == *"/"* ]]; then
-  # owner/partial -> repo picker (Starred is a virtual collection)
-  if [[ "${query%%/*}" == "Starred" ]]; then
-    starred_picker "$query"
-  else
-    repo_picker "$query"
-  fi
+  # owner/partial -> repo picker
+  repo_picker "$query"
 else
   # bare query -> matching orgs, with an optional update banner on the home view
   if [[ -z "$query" ]]; then

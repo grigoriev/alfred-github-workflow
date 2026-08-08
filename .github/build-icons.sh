@@ -46,7 +46,8 @@ branch:git-branch-24:$GRAY commit:git-commit-24:$GRAY \
 actions:workflow-24:$BLUE admin:gear-24:$GRAY clone:download-24:$BLUE \
 discussion:comment-discussion-24:$BLUE milestone:milestone-24:$GREEN \
 release:tag-24:$GREEN update:sync-24:$BLUE login:sign-in-24:$GREEN \
-logout:sign-out-24:$GRAY trash:trash-24:$RED star:star-fill-24:$GOLD"
+logout:sign-out-24:$GRAY trash:trash-24:$RED star:star-fill-24:$GOLD \
+user:person-24:$GRAY all:search-24:$GRAY"
 
 echo "generating item icons..."
 for entry in $icons; do
