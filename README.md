@@ -52,8 +52,8 @@ gh owner/repo          open the repo menu (⏎): open, issues, pulls, ...
 gh owner/repo #123     open an issue or pull request
 gh owner/repo @branch  open a branch
 gh owner/repo *commit  open a commit
-gh owner/repo issues | pulls | actions | admin | clone |
-               discussions | milestones | releases
+gh owner/repo issues | pulls | branches | actions | releases |
+               tags | milestones | discussions | security | admin | clone
 gh > orgs              edit the list of organizations
 gh >                   global commands (login, logout, update, ...)
 ```

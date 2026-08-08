@@ -169,6 +169,18 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["Issues"]' >/dev/null
 }
 
+@test "gh.sh: the repo menu offers branches, tags and security" {
+  run bash -c '. src/gh.sh list "testorg/alpha "'
+  echo "$output" | jq -e '[.items[].title] | index("Branches") != null and index("Tags") != null and index("Security") != null' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="Security") | .arg == "open https://github.com/testorg/alpha/security"' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="Tags") | .arg == "open https://github.com/testorg/alpha/tags"' >/dev/null
+}
+
+@test "gh.sh: a section prefix filters to branches" {
+  run bash -c '. src/gh.sh list "testorg/alpha branch"'
+  echo "$output" | jq -e '[.items[].title] == ["Branches"]' >/dev/null
+}
+
 @test "gh.sh: clone copies the clone url" {
   run bash -c '. src/gh.sh list "testorg/alpha clone"'
   echo "$output" | jq -e '.items[0].arg == "copy git@github.com:testorg/alpha.git"' >/dev/null
