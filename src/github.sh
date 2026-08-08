@@ -78,3 +78,25 @@ gh_login() {
   printf '%s' "$login"
   return 0
 }
+
+# Print an account's cached type ("User" or "Organization"), or nothing when it
+# has not been looked up yet. Reads the cache only, so it never blocks.
+cached_account_type() {
+  local file
+  file="${alfred_workflow_data:-.}/types/$1"
+  [[ -s "$file" ]] && cat "$file"
+  return 0
+}
+
+# Look up an account's type and cache it. Called during the database rebuild.
+cache_account_type() {
+  local name="$1" gh type dir
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || return 0
+  type="$("$gh" api "users/$name" --jq .type 2>/dev/null)"
+  [[ -n "$type" ]] || return 0
+  dir="${alfred_workflow_data:-.}/types"
+  mkdir -p "$dir"
+  printf '%s' "$type" > "$dir/$name.tmp" && mv "$dir/$name.tmp" "$dir/$name"
+  return 0
+}

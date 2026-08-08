@@ -58,6 +58,14 @@ setup() {
   echo "$output" | jq -e '[.items[].title] == ["My pull requests"]' >/dev/null
 }
 
+@test "gh.sh: the org list icon reflects user vs organization" {
+  printf 'testorg\ntestuser\n' > "$alfred_workflow_data/orgs"
+  run bash -c '. src/gh.sh list "testorg/"'
+  run bash -c '. src/gh.sh list ""'
+  echo "$output" | jq -e '.items[] | select(.title=="testorg") | .icon.path == "icons/org.png"' >/dev/null
+  echo "$output" | jq -e '.items[] | select(.title=="testuser") | .icon.path == "icons/user.png"' >/dev/null
+}
+
 @test "gh.sh: filters orgs by prefix" {
   run bash -c '. src/gh.sh list "test"'
   echo "$output" | jq -e '[.items[].title] == ["testorg"]' >/dev/null

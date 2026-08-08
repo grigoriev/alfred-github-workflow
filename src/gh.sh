@@ -38,7 +38,14 @@ add_org_items() {
       @my)      name="My";      icon="$ICON_USER"; auto="My/";      sub="Your pull requests, issues, notifications" ;;
       @all)     name="All";     icon="$ICON_ALL";  auto="All/";     sub="Search repositories across every organization" ;;
       @*)       continue ;;
-      *)        name="$org";    icon="$ICON_ORG";  auto="$org/";    sub="Browse $org repositories" ;;
+      *)
+        name="$org"; auto="$org/"; sub="Browse $org repositories"
+        if [[ "$(cached_account_type "$org")" == "User" ]]; then
+          icon="$ICON_USER"
+        else
+          icon="$ICON_ORG"
+        fi
+        ;;
     esac
     lc_name="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
     [[ "$lc_name" == "$lc_filter"* ]] || continue
