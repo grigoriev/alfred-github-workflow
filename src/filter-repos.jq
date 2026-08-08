@@ -3,7 +3,8 @@
 # repos are marked with a star and sorted to the top, and each item carries a cmd
 # modifier that hides it and an alt modifier that pins or unpins it.
 # --arg q the query, --arg icon the icon path, --argjson visible a list of visible
-# "owner/name" strings or null for all, --argjson pinned a list of pinned strings.
+# "owner/name" strings or null for all, --argjson pinned a list of pinned strings,
+# --argjson hideable true to add the cmd hide modifier.
 # Match owner and repo name separately, so "owner/pdf" finds a repo whose name
 # contains "pdf" anywhere, not only names that start with it.
 def matches($q):
@@ -27,12 +28,13 @@ def matches($q):
     autocomplete: (.nameWithOwner + " "),
     valid: false,
     icon: { path: $icon },
-    mods: {
-      cmd: { valid: true, arg: ("hide " + .nameWithOwner),
-             subtitle: "Hide this repository" },
-      alt: (if ._pinned
-            then { valid: true, arg: ("unpin " + .nameWithOwner), subtitle: "Unpin from the top" }
-            else { valid: true, arg: ("pin " + .nameWithOwner), subtitle: "Pin to the top" }
-            end)
-    }
+    mods: (
+      (if $hideable
+       then { cmd: { valid: true, arg: ("hide " + .nameWithOwner), subtitle: "Hide this repository" } }
+       else {} end)
+      + { alt: (if ._pinned
+                then { valid: true, arg: ("unpin " + .nameWithOwner), subtitle: "Unpin from the top" }
+                else { valid: true, arg: ("pin " + .nameWithOwner), subtitle: "Pin to the top" }
+                end) }
+    )
   })

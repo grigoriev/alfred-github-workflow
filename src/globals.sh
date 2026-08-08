@@ -67,6 +67,7 @@ edit_orgs() {
   mkdir -p "${alfred_workflow_data:-.}"
   if [[ ! -f "$file" ]]; then
     printf '%s\n' "# One GitHub organization or user per line." \
+                  "# Add a \"Starred\" line to place your starred repositories." \
                   "# Lines that start with # are ignored." > "$file"
   fi
   open -e "$file"

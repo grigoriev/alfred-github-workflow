@@ -50,3 +50,12 @@ gh_repo_list() {
     || printf '[]'
   return 0
 }
+
+# Print the authenticated user's starred repositories as GitHub API JSON.
+gh_starred() {
+  local gh
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || { printf '[]'; return 0; }
+  "$gh" api user/starred --paginate 2>/dev/null || printf '[]'
+  return 0
+}
