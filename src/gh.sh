@@ -29,10 +29,10 @@ query="$2"
 # so it is distinct from real orgs, but shows as a plain name like "Starred".
 add_org_items() {
   local filter="$1" org lc_filter lc_org name icon auto sub lc_name
-  lc_filter="$(printf '%s' "$filter" | tr '[:upper:]' '[:lower:]')"
+  lc_filter="$(gh_lower "$filter")"
   while IFS= read -r org; do
     [[ -n "$org" ]] || continue
-    lc_org="$(printf '%s' "$org" | tr '[:upper:]' '[:lower:]')"
+    lc_org="$(gh_lower "$org")"
     case "$lc_org" in
       @starred) name="Starred"; icon="$ICON_STAR"; auto="Starred/"; sub="Browse your starred repositories" ;;
       @my)      name="My";      icon="$ICON_USER"; auto="My/";      sub="Your pull requests, issues, notifications" ;;
@@ -47,7 +47,7 @@ add_org_items() {
         fi
         ;;
     esac
-    lc_name="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+    lc_name="$(gh_lower "$name")"
     [[ "$lc_name" == "$lc_filter"* ]] || continue
     add_result "" "" "$name" "$sub" "$icon" "no" "$auto"
   done < <(configured_orgs)
@@ -69,7 +69,8 @@ visible_dir() {
 
 # Path to an organization's visible-repositories file.
 org_file() {
-  printf '%s/%s' "$(visible_dir)" "$1"
+  local org="$1"
+  printf '%s/%s' "$(visible_dir)" "$org"
   return 0
 }
 
@@ -100,8 +101,8 @@ sync_org() {
 # Print an org's visible repositories (uncommented lines) as a JSON array, or
 # null when the org has no file yet, meaning show everything.
 org_visible_json() {
-  local file
-  file="$(org_file "$1")"
+  local org="$1" file
+  file="$(org_file "$org")"
   if [[ -f "$file" ]]; then
     grep -vE '^[[:space:]]*(#.*)?$' "$file" | jq -Rn '[inputs | select(length > 0)]'
   else
@@ -302,15 +303,17 @@ all_picker() {
 
 # Succeed when an organization (case-insensitive) is in the configured list.
 org_configured() {
-  local target="$1"
-  configured_orgs | tr '[:upper:]' '[:lower:]' | grep -qxF "$target"
+  local target="$1" orgs
+  orgs="$(gh_lower "$(configured_orgs)")"
+  printf '%s\n' "$orgs" | grep -qxF "$target"
+  return $?
 }
 
 # Succeed when the owner names a pseudo-org that is present in the orgs file, so
 # a pseudo-org that is not configured does not work even when typed by hand.
 pseudo_org_active() {
-  local lc
-  lc="$(gh_lower "$1")"
+  local owner="$1" lc
+  lc="$(gh_lower "$owner")"
   case "$lc" in
     starred|my|all) org_configured "@$lc" ;;
     *) return 1 ;;
@@ -480,7 +483,8 @@ repo_scoped() {
 # Reopen Alfred on a query so the list refreshes in place after an action,
 # instead of the window closing.
 alfred_search() {
-  osascript - "$1" <<'APPLESCRIPT'
+  local query="$1"
+  osascript - "$query" <<'APPLESCRIPT'
 on run argv
   tell application id "com.runningwithcrayons.Alfred" to search (item 1 of argv)
 end run
