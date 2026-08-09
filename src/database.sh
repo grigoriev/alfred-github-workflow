@@ -67,12 +67,14 @@ db_read() {
 # Succeed when the database exists and is younger than the TTL.
 database_fresh() {
   db_fresh "$(repos_db)"
+  return $?
 }
 
 # Print the database JSON, building it synchronously when missing. Return 1 when
 # the served data is stale, so the caller refreshes it in the background.
 read_database() {
   db_read "$(repos_db)" rebuild_database
+  return $?
 }
 
 # Path to the cached starred-repositories database.
@@ -100,4 +102,5 @@ rebuild_starred() {
 # Return 1 when the served data is stale.
 read_starred() {
   db_read "$(starred_db)" rebuild_starred
+  return $?
 }
