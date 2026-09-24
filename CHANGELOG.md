@@ -15,6 +15,7 @@ All notable changes to this workflow are documented here. The format follows
 - Shell steps read workflow expressions from environment variables.
 - Renovate pins GitHub Actions by commit digest.
 - The kcov coverage image is pinned by digest, and Renovate keeps it current.
+- Releases carry a signed build provenance bundle (`*.intoto.jsonl`).
 
 ### Added
 
