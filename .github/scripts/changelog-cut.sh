@@ -31,8 +31,10 @@ tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
 
 awk -v version="$version" -v release_date="$release_date" '
+    # A link reference of the Unreleased or a version section. Other link
+    # references may stand inside an entry.
     function is_link(line) {
-        return line ~ /^\[[^]]+\]: /
+        return line ~ /^\[(Unreleased|[0-9][^]]*)\]: /
     }
     # Prints the collected Unreleased entries as the new release section.
     function cut(   first, last, i, has_entry) {
@@ -70,10 +72,16 @@ awk -v version="$version" -v release_date="$release_date" '
         print "[Unreleased]: " base "/compare/v" version "...HEAD"
         print "[" version "]: " base "/compare/" prev "...v" version
     }
-    !done && !inside && /^## \[Unreleased\]/ { print; inside = 1; next }
-    inside && (/^## / || is_link($0)) { cut() }
+    # Lines inside a fenced code block are neither headings nor links.
+    {
+        heading = !fence && /^## /
+        link = !fence && is_link($0)
+        if ($0 ~ /^[[:space:]]*(```|~~~)/) fence = !fence
+    }
+    !done && !inside && heading && /^## \[Unreleased\]/ { print; inside = 1; next }
+    inside && (heading || link) { cut() }
     inside { body[++n] = $0; next }
-    index($0, "[Unreleased]: ") == 1 { relink($0); next }
+    link && index($0, "[Unreleased]: ") == 1 { relink($0); next }
     { print }
     END { if (inside) cut() }
 ' "$changelog" > "$tmp"
