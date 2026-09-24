@@ -14,6 +14,7 @@ All notable changes to this workflow are documented here. The format follows
 - Checkouts drop the git credentials, except in the version bump that pushes.
 - Shell steps read workflow expressions from environment variables.
 - Renovate pins GitHub Actions by commit digest.
+- The kcov coverage image is pinned by digest, and Renovate keeps it current.
 
 ### Added
 

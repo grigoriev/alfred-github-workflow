@@ -9,6 +9,18 @@
   "automergeType": "pr",
   "platformAutomerge": false,
   "pinDigests": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Docker images pinned in workflow env variables",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+[A-Z0-9_]+: [^\\s:]+:(?<currentValue>[^\\s@]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ]
+    }
+  ],
   "packageRules": [
     {
       "matchUpdateTypes": [

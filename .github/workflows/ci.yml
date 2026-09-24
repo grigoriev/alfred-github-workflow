@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # renovate: datasource=docker depName=kcov/kcov
+  KCOV_IMAGE: kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd10948a4f76dfed381765577db909664fc603
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -66,7 +70,7 @@ jobs:
         run: make updater
       - name: Run tests under kcov
         run: |
-          docker run --rm -v "$PWD:$PWD" -w "$PWD" kcov/kcov:latest bash -c \
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" "$KCOV_IMAGE" bash -c \
             "apt-get update -qq && apt-get install -y -qq bats jq >/dev/null && kcov --include-pattern=src/ coverage bats tests || true"
       - name: Convert coverage to SonarQube format
         run: python3 .github/coverage-to-sonar.py coverage sonar-coverage.xml
