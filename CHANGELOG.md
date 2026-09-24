@@ -19,5 +19,9 @@ All notable changes to this workflow are documented here. The format follows
 
 - Disclaimer and License sections in the README.
 
+### Fixed
+
+- CI runs once per commit on a Renovate branch; a second push run blocked the automerge.
+
 Earlier releases are listed on the
 [GitHub releases page](https://github.com/grigoriev/alfred-github-workflow/releases).
