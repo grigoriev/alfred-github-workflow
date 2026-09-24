@@ -41,6 +41,16 @@ profile. That shaped a few choices:
 2. Under **Assets**, download `GitHub.alfredworkflow`.
 3. Double click the file to add it to Alfred.
 
+### Verify
+
+Each release carries `GitHub.alfredworkflow.intoto.jsonl`, a signed build
+provenance bundle. Check that this repository's release workflow built the
+download:
+
+```sh
+gh attestation verify GitHub.alfredworkflow --repo grigoriev/alfred-github-workflow
+```
+
 ## Usage
 
 ```
