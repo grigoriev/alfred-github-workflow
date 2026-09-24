@@ -3,6 +3,7 @@
 ![CI](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml/badge.svg)
 [![Release](https://img.shields.io/github/v/release/grigoriev/alfred-github-workflow)](https://github.com/grigoriev/alfred-github-workflow/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/alfred-github-workflow/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/alfred-github-workflow)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_alfred-github-workflow&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=grigoriev_alfred-github-workflow)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_alfred-github-workflow&metric=coverage)](https://sonarcloud.io/summary/new_code?id=grigoriev_alfred-github-workflow)
 
@@ -99,3 +100,14 @@ make icons    # regenerate PNG icons from Octicons (macOS, needs librsvg)
 ```
 
 Icons come from [Octicons](https://github.com/primer/octicons) (MIT).
+
+## Disclaimer
+
+This workflow is provided "as is", without warranty of any kind, as the [LICENSE](LICENSE) states.
+Use it at your own risk. Sergey Grigoriev is not liable for damage from its use, as far as the law
+allows. It is published free of charge, outside of any commercial offering, with no obligation to
+support it. Security reports are welcome, see [SECURITY.md](SECURITY.md).
+
+## License
+
+MIT, see [LICENSE](LICENSE).
