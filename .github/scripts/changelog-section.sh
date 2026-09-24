@@ -22,7 +22,13 @@ changelog=${CHANGELOG:-CHANGELOG.md}
 extract() {
     local file=$1
     awk -v version="$version" '
-        /^## / {
+        # Lines inside a fenced code block are neither headings nor links.
+        {
+            heading = !fence && /^## /
+            link = !fence && /^\[(Unreleased|[0-9][^]]*)\]: /
+            if ($0 ~ /^[[:space:]]*(```|~~~)/) fence = !fence
+        }
+        heading {
             if (inside) {
                 if (match($0, /^## \[[^]]+\]/)) previous = substr($0, 5, RLENGTH - 5)
                 inside = 0
@@ -32,7 +38,7 @@ extract() {
             if (!done && index($0, "## [" version "]") == 1) inside = 1
             next
         }
-        /^\[[^]]+\]: / { inside = 0 }
+        link { inside = 0 }
         inside { body[++n] = $0 }
         END {
             first = 1
