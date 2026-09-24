@@ -24,6 +24,7 @@ All notable changes to this workflow are documented here. The format follows
 ### Fixed
 
 - CI runs once per commit on a Renovate branch; a second push run blocked the automerge.
+- A rerun of the release workflow uploads the files to the existing release.
 
 Earlier releases are listed on the
 [GitHub releases page](https://github.com/grigoriev/alfred-github-workflow/releases).
