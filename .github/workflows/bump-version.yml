@@ -1,5 +1,9 @@
 name: Bump Version & Release
 
+# This file is the same in every Alfred workflow repository and in
+# alfred-workflow-updater. What differs per repository lives in its Makefile:
+# print-version and set-version.
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,20 +21,28 @@ permissions: {}
 jobs:
   bump-and-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The push uses PAT_TOKEN, so the job token only reads.
     permissions:
-      contents: write
+      contents: read
 
     steps:
+      # ref: main, because the dispatch can start from any branch while the
+      # steps below commit the new version and push it to main. Without it a
+      # dispatch from a feature branch would publish that branch as main.
+      #
+      # persist-credentials: false, so no token is written into .git/config.
+      # PAT_TOKEN reaches the one step that pushes, and nothing else.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: main
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
-          persist-credentials: true # zizmor: ignore[artipacked] "Commit and tag" pushes with PAT_TOKEN
+          persist-credentials: false
 
       - name: Get current version
         id: current
         run: |
-          VERSION=$(python3 -c "import plistlib; print(plistlib.load(open('info.plist','rb'))['version'])")
+          VERSION=$(make -s print-version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Current version: $VERSION"
 
@@ -49,11 +61,10 @@ jobs:
           echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
           echo "New version: ${major}.${minor}.${patch}"
 
-      - name: Update version in info.plist
+      - name: Write the new version
         env:
           NEW_VERSION: ${{ steps.new.outputs.version }}
-        run: |
-          python3 -c "import os, plistlib; p='info.plist'; d=plistlib.load(open(p,'rb')); d['version']=os.environ['NEW_VERSION']; plistlib.dump(d, open(p,'wb'))"
+        run: make set-version VERSION="$NEW_VERSION"
 
       # The release workflow takes its notes from the section cut here.
       - name: Move the Unreleased entries of CHANGELOG.md into the release
@@ -61,17 +72,30 @@ jobs:
           NEW_VERSION: ${{ steps.new.outputs.version }}
         run: .github/scripts/changelog-cut.sh "$NEW_VERSION"
 
+      # PAT_TOKEN, not GITHUB_TOKEN: a tag pushed with the default token starts
+      # no further workflow, so release.yml would never see this tag.
       - name: Commit and tag
         env:
           NEW_VERSION: ${{ steps.new.outputs.version }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add info.plist CHANGELOG.md
+          # Stages the version file and CHANGELOG.md, the only tracked changes.
+          git add -u
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "v$NEW_VERSION"
-          git push origin HEAD:main
-          git push origin "v$NEW_VERSION"
+          # The token reaches git through GIT_ASKPASS, so the remote URL carries
+          # no credential: a URL with the token stands in the command line of
+          # the push and in what git prints when a push fails. The helper file
+          # holds no secret either, it reads the one in the environment.
+          # shellcheck disable=SC2016  # $PAT_TOKEN is read when the helper runs
+          printf '#!/bin/sh\nexec echo "$PAT_TOKEN"\n' > "$RUNNER_TEMP/askpass.sh"
+          chmod +x "$RUNNER_TEMP/askpass.sh"
+          export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
+          REMOTE="https://x-access-token@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$REMOTE" main
+          git push "$REMOTE" "v$NEW_VERSION"
 
       - name: Summary
         env:

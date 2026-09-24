@@ -1,24 +1,32 @@
 name: CI
 
+# This file is the same in every Alfred workflow repository and in
+# alfred-workflow-updater. What differs per repository lives in its Makefile:
+# lint, test, coverage, build and print-artifact.
+
 on:
   push:
     branches: ["main"]
   pull_request:
 
-permissions:
-  contents: read
+# A new push to a pull request cancels the older run. Runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  # renovate: datasource=docker depName=kcov/kcov
-  KCOV_IMAGE: kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd10948a4f76dfed381765577db909664fc603
+permissions: {}
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The Makefile pins the ShellCheck image by digest. Renovate keeps it current.
       - name: ShellCheck
         run: make lint
       # Checks the workflows themselves: expressions, inputs, shell in run.
@@ -35,10 +43,17 @@ jobs:
 
   test:
     runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Not pinned: Homebrew installs only the current version of a formula.
+      # The tests must run on macOS, under the stock /bin/bash 3.2, so a
+      # container image pinned by digest is no option here. This job ships
+      # nothing: the release builds on Linux without bats.
       - name: Install bats
         run: brew install bats-core jq
       - name: Test
@@ -46,34 +61,39 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [lint, test]
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build Alfred Workflow
-        run: make build
+      - name: Build
+        id: build
+        run: |
+          make build
+          echo "artifact=$(make -s print-artifact)" >> "$GITHUB_OUTPUT"
       - name: Upload Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: GitHub.alfredworkflow
-          path: GitHub.alfredworkflow
+          name: ${{ steps.build.outputs.artifact }}
+          path: ${{ steps.build.outputs.artifact }}
 
   sonar:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Fetch updater bundle
-        run: make updater
+      # kcov in its container, pinned by digest in the Makefile. It writes
+      # sonar-coverage.xml for the scan.
       - name: Run tests under kcov
-        run: |
-          docker run --rm -v "$PWD:$PWD" -w "$PWD" "$KCOV_IMAGE" bash -c \
-            "apt-get update -qq && apt-get install -y -qq bats jq >/dev/null && kcov --include-pattern=src/ coverage bats tests || true"
-      - name: Convert coverage to SonarQube format
-        run: python3 .github/coverage-to-sonar.py coverage sonar-coverage.xml
+        run: make coverage
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
         env:
