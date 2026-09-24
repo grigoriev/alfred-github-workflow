@@ -55,13 +55,19 @@ jobs:
         run: |
           python3 -c "import os, plistlib; p='info.plist'; d=plistlib.load(open(p,'rb')); d['version']=os.environ['NEW_VERSION']; plistlib.dump(d, open(p,'wb'))"
 
+      # The release workflow takes its notes from the section cut here.
+      - name: Move the Unreleased entries of CHANGELOG.md into the release
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
+        run: .github/scripts/changelog-cut.sh "$NEW_VERSION"
+
       - name: Commit and tag
         env:
           NEW_VERSION: ${{ steps.new.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add info.plist
+          git add info.plist CHANGELOG.md
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "v$NEW_VERSION"
           git push origin HEAD:main
