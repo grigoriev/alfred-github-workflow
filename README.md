@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/alfred-github-workflow/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/alfred-github-workflow)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14797/badge)](https://www.bestpractices.dev/projects/14797)
 [![Release](https://img.shields.io/github/v/release/grigoriev/alfred-github-workflow)](https://github.com/grigoriev/alfred-github-workflow/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
