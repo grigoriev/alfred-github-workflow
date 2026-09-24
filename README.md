@@ -1,9 +1,10 @@
 # <img src="https://raw.githubusercontent.com/grigoriev/alfred-github-workflow/main/icon.png" alt="github" width="32"> Alfred GitHub Workflow
 
-![CI](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml/badge.svg)
-[![Release](https://img.shields.io/github/v/release/grigoriev/alfred-github-workflow)](https://github.com/grigoriev/alfred-github-workflow/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/alfred-github-workflow/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/alfred-github-workflow/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/alfred-github-workflow)
+[![Release](https://img.shields.io/github/v/release/grigoriev/alfred-github-workflow)](https://github.com/grigoriev/alfred-github-workflow/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_alfred-github-workflow&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=grigoriev_alfred-github-workflow)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_alfred-github-workflow&metric=coverage)](https://sonarcloud.io/summary/new_code?id=grigoriev_alfred-github-workflow)
 
