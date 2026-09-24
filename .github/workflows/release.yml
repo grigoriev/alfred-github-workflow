@@ -22,6 +22,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # The notes come from the CHANGELOG.md section that bump-version.yml cut.
+      # A tag without that section fails here, before the build.
+      - name: Read the release notes from CHANGELOG.md
+        run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME#v}" "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/release-notes.md"
+
       - name: Set version from tag
         run: plutil -replace version -string "${GITHUB_REF_NAME#v}" info.plist
 
@@ -46,5 +51,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" --clobber
           else
             gh release create "$GITHUB_REF_NAME" GitHub.alfredworkflow GitHub.alfredworkflow.intoto.jsonl \
-              --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+              --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
