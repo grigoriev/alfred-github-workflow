@@ -61,6 +61,7 @@ gh intechcore/         list the organization's repositories
 gh Starred/            list your starred repositories
 gh My/                 your pull requests, issues, and profile
 gh All/pdf             search repositories across every organization
+ghs pdf                the same search, ⏎ opens the repository directly
 gh owner/repo          open the repo menu (⏎): open, issues, pulls, ...
 gh owner/repo #123     open an issue or pull request
 gh owner/repo @branch  open a branch
@@ -77,6 +78,11 @@ press <kbd>⏎</kbd> to hide it from the list, or <kbd>⌥</kbd> to pin it to th
 once, open `gh > hidden` and pick an organization to edit its list in a text
 editor, then delete or comment (`#`) the repos you want hidden. `gh > hidden`
 also unhides a single repo with <kbd>⏎</kbd>.
+
+`ghs` searches repositories across every configured organization, like
+`gh All/`, and needs no `@All` line. Hidden repositories are excluded. Press
+<kbd>⏎</kbd> to open the repository in the browser, <kbd>⌘</kbd><kbd>⏎</kbd> to
+open its menu under `gh`, or <kbd>⌥</kbd><kbd>⏎</kbd> to pin it to the top.
 
 ## Configuration
 

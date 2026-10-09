@@ -21,6 +21,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>7A2B0C10-0003-47B0-9C00-000000000003</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>7A2B0C10-0002-47B0-9C00-000000000002</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Sergey Grigoriev</string>
@@ -84,6 +97,55 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>ghs</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Loading ...</string>
+				<key>script</key>
+				<string>. src/gh.sh search "{query}"</string>
+				<key>scriptargtype</key>
+				<integer>0</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Search repositories across every organization</string>
+				<key>title</key>
+				<string>GitHub search</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>7A2B0C10-0003-47B0-9C00-000000000003</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>concurrently</key>
 				<false/>
 				<key>escaping</key>
@@ -106,7 +168,7 @@
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Type `gh` to browse your configured GitHub organizations, then `gh owner/` to list repositories and open them in the browser. The URL routing to browser profiles is handled by your browser router (for example Finicky).</string>
+	<string>Type `gh` to browse your configured GitHub organizations, then `gh owner/` to list repositories and open them in the browser. The URL routing to browser profiles is handled by your browser router (for example Finicky). Type `ghs` and a name to search repositories across every organization and open one directly.</string>
 	<key>uidata</key>
 	<dict>
 		<key>7A2B0C10-0001-47B0-9C00-000000000001</key>
@@ -122,6 +184,13 @@
 			<integer>410</integer>
 			<key>ypos</key>
 			<integer>20</integer>
+		</dict>
+		<key>7A2B0C10-0003-47B0-9C00-000000000003</key>
+		<dict>
+			<key>xpos</key>
+			<integer>230</integer>
+			<key>ypos</key>
+			<integer>150</integer>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>

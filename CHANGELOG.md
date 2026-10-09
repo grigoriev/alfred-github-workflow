@@ -9,6 +9,10 @@ Releases before 2.0.1 are listed on the
 
 ## [Unreleased]
 
+### Added
+
+- The `ghs` keyword searches repositories across every organization and opens one with enter.
+
 ### Changed
 
 - The version bump moves the Unreleased entries of this changelog into a section for
