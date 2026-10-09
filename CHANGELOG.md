@@ -9,6 +9,8 @@ Releases before 2.0.1 are listed on the
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-09
+
 ### Added
 
 - The `ghs` keyword searches repositories across every organization and opens one with enter.
