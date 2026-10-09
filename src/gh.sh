@@ -7,9 +7,10 @@
 . src/cache.sh
 . src/globals.sh
 
-# Single entry point behind the "gh" keyword. Called two ways from Alfred:
-#   list mode (Script Filter): . src/gh.sh list "{query}"
-#   run mode  (Run Script):    . src/gh.sh run  "{query}"
+# Single entry point behind the "gh" and "ghs" keywords. Called three ways from Alfred:
+#   list mode   (Script Filter "gh"):  . src/gh.sh list   "{query}"
+#   search mode (Script Filter "ghs"): . src/gh.sh search "{query}"
+#   run mode    (Run Script):          . src/gh.sh run    "{query}"
 #
 # Query grammar:
 #   gh                    -> configured orgs
@@ -227,11 +228,12 @@ unpin_repo() {
 
 # Filter a repos JSON array with filter-repos.jq and print the Script Filter
 # feedback. $4 visible is a JSON allowlist or null, $5 hideable adds the cmd hide
-# modifier, $6 empty is the "nothing found" subtitle.
+# modifier, $6 empty is the "nothing found" subtitle, $7 openable (default false)
+# opens the repo on enter instead of autocompleting it.
 render_repos() {
-  local query="$1" repos="$2" stale="$3" visible="$4" hideable="$5" empty="$6" items pinned
+  local query="$1" repos="$2" stale="$3" visible="$4" hideable="$5" empty="$6" openable="${7:-false}" items pinned
   pinned="$(pinned_json)"
-  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson visible "$visible" --argjson pinned "$pinned" --argjson hideable "$hideable" <<< "$repos")"
+  items="$(jq -c -f src/filter-repos.jq --arg q "$query" --arg icon "$ICON_REPO" --argjson visible "$visible" --argjson pinned "$pinned" --argjson hideable "$hideable" --argjson openable "$openable" <<< "$repos")"
   if [[ "$items" == "[]" ]]; then
     if gh_authed; then
       add_result "" "" "No repositories found" "$empty" "$ICON_REPO" "no"
@@ -283,21 +285,35 @@ starred_picker() {
   return 0
 }
 
-# The picker for "All/partial": search repositories across every configured org.
-# Hidden repos are excluded; the query after "All/" matches "owner/name".
-all_picker() {
-  local query="$1" q repos hidden visible stale
-  q="${query#*/}"
+# Print the database repos that are not hidden as a JSON array of "owner/name",
+# or null when the database cannot be read, meaning show everything.
+unhidden_json() {
+  local repos="$1" hidden visible
+  hidden="$(hidden_repos | jq -Rn '[inputs | select(length > 0)]')"
+  visible="$(jq -c --argjson hidden "$hidden" '[.[].nameWithOwner] - $hidden' <<< "$repos" 2>/dev/null)"
+  [[ -n "$visible" ]] || visible="null"
+  printf '%s' "$visible"
+  return 0
+}
+
+# Search repositories across every configured org, hidden repos excluded. $1 is
+# the filter matched against "owner/name", $2 openable opens a repo on enter.
+search_repos() {
+  local q="$1" openable="$2" repos stale
   repos="$(read_database)"
   stale=$?
   if [[ "$stale" -eq 1 ]]; then
     ( rebuild_database ) >/dev/null 2>&1 &
     disown 2>/dev/null || true
   fi
-  hidden="$(hidden_repos | jq -Rn '[inputs | select(length > 0)]')"
-  visible="$(jq -c --argjson hidden "$hidden" '[.[].nameWithOwner] - $hidden' <<< "$repos" 2>/dev/null)"
-  [[ -n "$visible" ]] || visible="null"
-  render_repos "$q" "$repos" "$stale" "$visible" false "No repositories found"
+  render_repos "$q" "$repos" "$stale" "$(unhidden_json "$repos")" false "No repositories found" "$openable"
+  return 0
+}
+
+# The picker for "All/partial": search repositories across every configured org.
+all_picker() {
+  local query="$1"
+  search_repos "${query#*/}" false
   return 0
 }
 
@@ -509,9 +525,18 @@ if [[ "$mode" == "run" ]]; then
     unhide) unhide_repo "$payload"; alfred_search "gh > hidden" ;;
     pin) pin_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
     unpin) unpin_repo "$payload"; alfred_search "gh ${payload%%/*}/" ;;
+    search-pin) pin_repo "$payload"; alfred_search "ghs ${payload#*/}" ;;
+    search-unpin) unpin_repo "$payload"; alfred_search "ghs ${payload#*/}" ;;
+    menu) alfred_search "gh $payload " ;;
     http://*|https://*) rm -f "$(autoupdate_pending)"; [[ -f src/update.sh ]] && . src/update.sh "$query" ;;
     *) : ;;
   esac
+  exit
+fi
+
+# Search mode: the "ghs" keyword, a repo search that opens on enter
+if [[ "$mode" == "search" ]]; then
+  search_repos "$query" true
   exit
 fi
 

@@ -137,6 +137,54 @@ setup() {
   echo "$output" | jq -e '.items[0].mods | has("cmd") | not' >/dev/null
 }
 
+@test "gh.sh: search mode finds repos across orgs and excludes hidden repos" {
+  run bash -c '. src/gh.sh list "testorg/"'
+  run bash -c '. src/gh.sh run "hide testorg/beta"'
+  run bash -c '. src/gh.sh search "a"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: search mode works without an All line in the orgs file" {
+  run bash -c '. src/gh.sh search "alp"'
+  echo "$output" | jq -e '[.items[].title] == ["testorg/alpha"]' >/dev/null
+}
+
+@test "gh.sh: a search item opens the repo on enter" {
+  run bash -c '. src/gh.sh search "alpha"'
+  echo "$output" | jq -e '.items[0].valid == true' >/dev/null
+  echo "$output" | jq -e '.items[0].arg == "open https://github.com/testorg/alpha"' >/dev/null
+  echo "$output" | jq -e '.items[0].autocomplete == "testorg/alpha"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods.cmd.arg == "menu testorg/alpha"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods.alt.arg == "search-pin testorg/alpha"' >/dev/null
+}
+
+@test "gh.sh: search mode shows a no-repositories hint" {
+  run bash -c '. src/gh.sh search "zzz"'
+  echo "$output" | jq -e '.items[0].title == "No repositories found"' >/dev/null
+}
+
+@test "gh.sh: run menu reopens Alfred on the repo menu" {
+  export OSASCRIPT_LOG="$BATS_TEST_TMPDIR/osa.log"
+  run bash -c '. src/gh.sh run "menu testorg/alpha"'
+  grep -qF -- "gh testorg/alpha " "$OSASCRIPT_LOG"
+}
+
+@test "gh.sh: run search-pin pins the repo and returns to the search" {
+  export OSASCRIPT_LOG="$BATS_TEST_TMPDIR/osa.log"
+  run bash -c '. src/gh.sh run "search-pin testorg/beta"'
+  grep -qxF "testorg/beta" "$alfred_workflow_data/pinned"
+  grep -qF -- "ghs beta" "$OSASCRIPT_LOG"
+  run bash -c '. src/gh.sh search ""'
+  echo "$output" | jq -e '.items[0].title == "★ testorg/beta"' >/dev/null
+  echo "$output" | jq -e '.items[0].mods.alt.arg == "search-unpin testorg/beta"' >/dev/null
+}
+
+@test "gh.sh: run search-unpin unpins the repo" {
+  run bash -c '. src/gh.sh run "search-pin testorg/beta"'
+  run bash -c '. src/gh.sh run "search-unpin testorg/beta"'
+  ! grep -qxF "testorg/beta" "$alfred_workflow_data/pinned"
+}
+
 @test "gh.sh: unknown owner shows a no-repositories hint" {
   run bash -c '. src/gh.sh list "nope/"'
   echo "$output" | jq -e '.items[0].title == "No repositories found"' >/dev/null
