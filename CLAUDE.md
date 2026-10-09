@@ -2,11 +2,11 @@
 
 Alfred workflow that picks a GitHub repository fast and opens the right GitHub page in the browser.
 It uses the authenticated `gh` CLI. No PHP, no own OAuth app, no GitHub Enterprise.
-Keyword: `gh`. Artifact: `GitHub.alfredworkflow`.
+Keywords: `gh` to browse, `ghs` to search repos across all orgs. Artifact: `GitHub.alfredworkflow`.
 
 ## Layout
 
-- `src/gh.sh` - the entry point. It takes `mode` (`list` for the Script Filter, `run` for the Run Script) and `query`.
+- `src/gh.sh` - the entry point. It takes `mode` and `query`. Modes: `list` (`gh` Script Filter), `search` (`ghs` Script Filter), `run` (Run Script).
 - `src/github.sh` - `gh` API access for repos, issues, pulls, branches and commits.
 - `src/config.sh` - the orgs file and the per-org visible-repositories files under `$alfred_workflow_data`.
 - `src/database.sh` - the local repository database, refreshed in the background after six hours.
