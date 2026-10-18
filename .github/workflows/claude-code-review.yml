@@ -1,6 +1,5 @@
 ---
 # Claude reviews a pull request once, when it opens or becomes ready.
-# Ask for a further round with an @claude comment, see claude.yml.
 name: Claude Code Review
 on:
   pull_request:
