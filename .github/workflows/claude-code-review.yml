@@ -10,7 +10,7 @@ concurrency:
 permissions: {}
 jobs:
   claude-review:
-    uses: grigoriev/workflows/.github/workflows/claude-review.yml@709ce4165ef786567f5055f61942ce3e9d34f658 # main
+    uses: grigoriev/workflows/.github/workflows/claude-review.yml@095f26d8f753183e940ca9a791ebd95956f88a26 # main
     permissions:
       actions: read
       contents: read
