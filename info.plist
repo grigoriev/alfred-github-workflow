@@ -208,7 +208,7 @@
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>Optional. A command that prints a GitHub token, for example a 1Password op read call. Use full paths: Alfred runs with a minimal PATH. Used when gh is not signed in. The token is never stored.</string>
+			<string>Optional. A command that prints a GitHub token, for example a 1Password op read call. Use full paths: Alfred runs with a minimal PATH. Used when neither GH_TOKEN nor GITHUB_TOKEN is set; it then takes precedence over a gh login. The token is never stored.</string>
 			<key>label</key>
 			<string>Token command</string>
 			<key>type</key>

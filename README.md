@@ -111,7 +111,7 @@ token. Use full paths, because Alfred runs with a minimal `PATH`:
 
 The workflow runs it only before a call to GitHub and passes the output to `gh`
 as `GH_TOKEN`. The token is never written to disk. An existing `GH_TOKEN` or
-`GITHUB_TOKEN` in the environment takes precedence. Each refresh then waits for
+`GITHUB_TOKEN` in the environment takes precedence; the command in turn takes precedence over a `gh auth login`. Each refresh then waits for
 the command, about 0.7 s for a 1Password service account.
 
 ## Caching
