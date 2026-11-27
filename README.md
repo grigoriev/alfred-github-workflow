@@ -24,7 +24,8 @@ profile. That shaped a few choices:
 - **No PHP.** macOS removed the bundled PHP runtime, so the original needs a
   separate PHP install. This workflow is bash and reuses the `gh` CLI, which is
   already installed and authenticated.
-- **No GitHub Enterprise and no own OAuth app.** `gh` handles authentication.
+- **No GitHub Enterprise and no own OAuth app.** `gh` handles authentication;
+  an optional token command can feed it a token from a password manager.
 - **A fixed set of organizations, not all of GitHub.** Fast autocomplete over the
   orgs you configure, then the browser routes URLs to profiles.
 - **Toolchain fit.** The sibling workflows are bash with a shared updater,
@@ -111,8 +112,13 @@ token. Use full paths, because Alfred runs with a minimal `PATH`:
 
 The workflow runs it only before a call to GitHub and passes the output to `gh`
 as `GH_TOKEN`. The token is never written to disk. An existing `GH_TOKEN` or
-`GITHUB_TOKEN` in the environment takes precedence; the command in turn takes precedence over a `gh auth login`. Each refresh then waits for
-the command, about 0.7 s for a 1Password service account.
+`GITHUB_TOKEN` in the environment takes precedence. The command in turn takes
+precedence over a `gh auth login`.
+
+A database refresh runs the command once, about 0.7 s for a 1Password service
+account. Other GitHub calls, such as issues or commits, run it once each. Use a
+command that never asks for input, such as a service account: a Touch ID prompt
+would block the workflow until you answer it.
 
 ## Caching
 

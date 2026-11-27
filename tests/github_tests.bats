@@ -111,3 +111,43 @@ make_token_gh() {
   run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "GH_TOKEN_COMMAND=echo ok" /bin/bash -c '. src/github.sh; gh_authed'
   [ "$status" -eq 0 ]
 }
+
+@test "gh_starred: uses the token command" {
+  local d="$BATS_TEST_TMPDIR/tok"
+  make_token_gh "$d"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "GH_TOKEN_COMMAND=echo s1" /bin/bash -c '. src/github.sh; gh_starred'
+  [ "$output" == "token=s1 args=api user/starred --paginate" ]
+}
+
+@test "cache_account_type: uses the token command" {
+  local d="$BATS_TEST_TMPDIR/tok"
+  mkdir -p "$d"
+  printf '#!/bin/bash\n[ "$GH_TOKEN" = "s1" ] && echo Organization\n' > "$d/gh"
+  chmod +x "$d/gh"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "alfred_workflow_data=$BATS_TEST_TMPDIR/data" "GH_TOKEN_COMMAND=echo s1" /bin/bash -c '. src/github.sh; cache_account_type someorg; cached_account_type someorg'
+  [ "$output" == "Organization" ]
+}
+
+@test "gh_login: refetches when the token command changes" {
+  local d="$BATS_TEST_TMPDIR/tok" data="$BATS_TEST_TMPDIR/data"
+  mkdir -p "$d" "$data"
+  printf '#!/bin/bash\necho "user-$GH_TOKEN"\n' > "$d/gh"
+  chmod +x "$d/gh"
+  printf 'olduser' > "$data/login"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "alfred_workflow_data=$data" "GH_TOKEN_COMMAND=echo b" /bin/bash -c '. src/github.sh; gh_login'
+  [ "$output" == "user-b" ]
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "alfred_workflow_data=$data" "GH_TOKEN_COMMAND=echo b" /bin/bash -c '. src/github.sh; gh_login'
+  [ "$output" == "user-b" ]
+}
+
+@test "rebuild_database: runs the token command once for all orgs" {
+  local d="$BATS_TEST_TMPDIR/tok" data="$BATS_TEST_TMPDIR/data" cache="$BATS_TEST_TMPDIR/cache"
+  mkdir -p "$d" "$data" "$cache"
+  printf '#!/bin/bash\n[ "$GH_TOKEN" = "s1" ] || exit 1\ncase "$1" in repo) printf "[]";; *) echo User;; esac\n' > "$d/gh"
+  chmod +x "$d/gh"
+  printf 'org-a\norg-b\norg-c\n' > "$data/orgs"
+  local counter="$BATS_TEST_TMPDIR/count"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin:/opt/homebrew/bin" "alfred_workflow_data=$data" "alfred_workflow_cache=$cache" \
+    "GH_TOKEN_COMMAND=echo x >> $counter; echo s1" /bin/bash -c '. src/workflow_handler.sh; . src/github.sh; . src/config.sh; . src/database.sh; rebuild_database'
+  [ "$(wc -l < "$counter" | tr -d ' ')" -eq 1 ]
+}

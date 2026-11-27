@@ -41,7 +41,9 @@ make clean      # remove the artifact, fetched updater and coverage
 - No bash 4+ features: no `mapfile`, `readarray`, `declare -A`, `${var,,}` or `${var^^}`.
 - Check a construct with `/bin/bash -c '...'`. zsh and Homebrew bash 5 hide 3.2 gaps.
 - No perl. Use `awk`, `sed`, `jq` or bash.
-- Authentication belongs to `gh`. The workflow never stores or reads a token itself.
+- Authentication belongs to `gh`. The workflow stores no token. The only exception: the optional
+  Token command (`GH_TOKEN_COMMAND`), whose output goes to `gh` as `GH_TOKEN` in memory.
+  Multi-call paths export it once first (`rebuild_database`, `rebuild_starred`).
 - Alfred runs with a minimal `PATH`. Resolve `gh` through `gh_bin` in `src/github.sh`.
 - The repository list must show instantly from the database. A stale database refreshes in the background, never in the foreground.
 - New repos in an org enter the visible file commented, so they stay hidden until reviewed.

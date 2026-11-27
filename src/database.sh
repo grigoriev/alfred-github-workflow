@@ -22,6 +22,10 @@ repos_db() {
 # poisons the cache; the previous database, if any, is kept.
 rebuild_database() {
   local db org data all normalized
+  # Run the token command once for the whole rebuild, not once per gh call.
+  local GH_TOKEN="${GH_TOKEN:-}"
+  [[ -n "$GH_TOKEN" ]] || GH_TOKEN="$(gh_command_token)"
+  export GH_TOKEN
   db="$(repos_db)"
   mkdir -p "$(dirname "$db")"
   all="[]"
@@ -87,6 +91,9 @@ starred_db() {
 # result is not written, so it never poisons the cache.
 rebuild_starred() {
   local db data normalized
+  local GH_TOKEN="${GH_TOKEN:-}"
+  [[ -n "$GH_TOKEN" ]] || GH_TOKEN="$(gh_command_token)"
+  export GH_TOKEN
   db="$(starred_db)"
   mkdir -p "$(dirname "$db")"
   data="$(gh_starred)"

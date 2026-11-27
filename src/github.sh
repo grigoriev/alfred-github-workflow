@@ -23,23 +23,37 @@ gh_bin() {
   return 0
 }
 
-# Run gh with the given arguments. When neither GH_TOKEN nor GITHUB_TOKEN is set
-# and the GH_TOKEN_COMMAND workflow setting is, run that command first and hand
-# its output to gh as GH_TOKEN, for example a 1Password "op read" call. The token
-# reaches only this gh process and is never written to disk.
+# Print the token from the GH_TOKEN_COMMAND workflow setting, for example a
+# 1Password "op read" call. Prints nothing when GH_TOKEN or GITHUB_TOKEN is set,
+# when no command is set, or when the command fails.
+gh_command_token() {
+  [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" && -n "${GH_TOKEN_COMMAND:-}" ]] || return 0
+  /bin/bash -c "$GH_TOKEN_COMMAND" 2>/dev/null || true
+  return 0
+}
+
+# Run gh with the given arguments. Without GH_TOKEN and GITHUB_TOKEN, pass the
+# token command's output to gh as GH_TOKEN. The token reaches only this gh
+# process and is never written to disk. Callers that run gh many times export
+# GH_TOKEN once first (see rebuild_database), so the command runs only once.
 gh_run() {
   local gh token
   gh="$(gh_bin)"
   [[ -n "$gh" ]] || return 127
-  if [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" && -n "${GH_TOKEN_COMMAND:-}" ]]; then
-    token="$(/bin/bash -c "$GH_TOKEN_COMMAND" 2>/dev/null)" || token=""
-    if [[ -n "$token" ]]; then
-      GH_TOKEN="$token" "$gh" "$@"
-      return $?
-    fi
+  token="$(gh_command_token)"
+  if [[ -n "$token" ]]; then
+    GH_TOKEN="$token" "$gh" "$@"
+    return $?
   fi
   "$gh" "$@"
   return $?
+}
+
+# Fingerprint of the token source, so a cached login is dropped when the
+# Token command changes. Holds no secret: only a checksum of the command text.
+gh_token_source() {
+  printf '%s' "${GH_TOKEN_COMMAND:-}" | cksum | awk '{print $1}'
+  return 0
 }
 
 # Succeed when gh is installed and authenticated.
@@ -76,9 +90,13 @@ gh_starred() {
 # Print the authenticated user's login, cached in the data dir after the first
 # lookup so the "My" pages resolve without a network call every time.
 gh_login() {
-  local file login
+  local file login src_id stored
   file="${alfred_workflow_data:-.}/login"
-  if [[ -s "$file" ]]; then
+  src_id="$(gh_token_source)"
+  # A login cached before this check has no .source file: it came from gh itself.
+  stored="$(cat "$file.source" 2>/dev/null)"
+  [[ -n "$stored" ]] || stored="$(GH_TOKEN_COMMAND='' gh_token_source)"
+  if [[ -s "$file" && "$stored" == "$src_id" ]]; then
     cat "$file"
     return 0
   fi
@@ -87,6 +105,7 @@ gh_login() {
   [[ -n "$login" ]] || return 0
   mkdir -p "${alfred_workflow_data:-.}"
   printf '%s' "$login" > "$file"
+  printf '%s' "$src_id" > "$file.source"
   printf '%s' "$login"
   return 0
 }
