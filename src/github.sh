@@ -27,8 +27,12 @@ gh_bin() {
 # 1Password "op read" call. Prints nothing when GH_TOKEN or GITHUB_TOKEN is set,
 # when no command is set, or when the command fails.
 gh_command_token() {
+  local out
   [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" && -n "${GH_TOKEN_COMMAND:-}" ]] || return 0
-  /bin/bash -c "$GH_TOKEN_COMMAND" 2>/dev/null || true
+  # Set by a rebuild that already ran the command: do not run it again.
+  [[ -z "${GH_TOKEN_TRIED:-}" ]] || return 0
+  # Print the output only on success, so a failing command never yields a token.
+  out="$(/bin/bash -c "$GH_TOKEN_COMMAND" 2>/dev/null)" && printf '%s' "$out"
   return 0
 }
 
@@ -101,7 +105,16 @@ gh_login() {
     return 0
   fi
   [[ -n "$(gh_bin)" ]] || return 0
-  login="$(gh_run api user --jq .login 2>/dev/null)"
+  # Resolve the token once. When the command gives none, gh falls back to its
+  # own login, so the result is tagged as such and not as a command login.
+  local token
+  token="$(gh_command_token)"
+  if [[ -n "$token" ]]; then
+    login="$(GH_TOKEN="$token" gh_run api user --jq .login 2>/dev/null)"
+  else
+    login="$(GH_TOKEN_TRIED=1 gh_run api user --jq .login 2>/dev/null)"
+    src_id="$(GH_TOKEN_COMMAND='' gh_token_source)"
+  fi
   [[ -n "$login" ]] || return 0
   mkdir -p "${alfred_workflow_data:-.}"
   printf '%s' "$login" > "$file"

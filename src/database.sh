@@ -25,7 +25,8 @@ rebuild_database() {
   # Run the token command once for the whole rebuild, not once per gh call.
   local GH_TOKEN="${GH_TOKEN:-}"
   [[ -n "$GH_TOKEN" ]] || GH_TOKEN="$(gh_command_token)"
-  export GH_TOKEN
+  local GH_TOKEN_TRIED=1
+  export GH_TOKEN GH_TOKEN_TRIED
   db="$(repos_db)"
   mkdir -p "$(dirname "$db")"
   all="[]"
@@ -93,7 +94,8 @@ rebuild_starred() {
   local db data normalized
   local GH_TOKEN="${GH_TOKEN:-}"
   [[ -n "$GH_TOKEN" ]] || GH_TOKEN="$(gh_command_token)"
-  export GH_TOKEN
+  local GH_TOKEN_TRIED=1
+  export GH_TOKEN GH_TOKEN_TRIED
   db="$(starred_db)"
   mkdir -p "$(dirname "$db")"
   data="$(gh_starred)"

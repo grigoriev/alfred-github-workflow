@@ -151,3 +151,30 @@ make_token_gh() {
     "GH_TOKEN_COMMAND=echo x >> $counter; echo s1" /bin/bash -c '. src/workflow_handler.sh; . src/github.sh; . src/config.sh; . src/database.sh; rebuild_database'
   [ "$(wc -l < "$counter" | tr -d ' ')" -eq 1 ]
 }
+
+@test "gh_command_token: a failing command yields no token even with output" {
+  run env -u GH_TOKEN -u GITHUB_TOKEN "GH_TOKEN_COMMAND=printf bad; exit 3" /bin/bash -c '. src/github.sh; gh_command_token'
+  [ "$output" == "" ]
+}
+
+@test "rebuild_database: runs a failing token command only once" {
+  local d="$BATS_TEST_TMPDIR/tok" data="$BATS_TEST_TMPDIR/data" cache="$BATS_TEST_TMPDIR/cache" counter="$BATS_TEST_TMPDIR/count"
+  mkdir -p "$d" "$data" "$cache"
+  printf '#!/bin/bash\ncase "$1" in repo) printf "[]";; *) echo User;; esac\n' > "$d/gh"
+  chmod +x "$d/gh"
+  printf 'org-a\norg-b\n' > "$data/orgs"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin:/opt/homebrew/bin" "alfred_workflow_data=$data" "alfred_workflow_cache=$cache" \
+    "GH_TOKEN_COMMAND=echo x >> $counter; exit 1" /bin/bash -c '. src/workflow_handler.sh; . src/github.sh; . src/config.sh; . src/database.sh; rebuild_database'
+  [ "$(wc -l < "$counter" | tr -d ' ')" -eq 1 ]
+}
+
+@test "gh_login: a fallback login is not cached as a command login" {
+  local d="$BATS_TEST_TMPDIR/tok" data="$BATS_TEST_TMPDIR/data"
+  mkdir -p "$d" "$data"
+  printf '#!/bin/bash\nif [ -n "$GH_TOKEN" ]; then echo "cmd-user"; else echo "gh-user"; fi\n' > "$d/gh"
+  chmod +x "$d/gh"
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "alfred_workflow_data=$data" "GH_TOKEN_COMMAND=exit 1" /bin/bash -c '. src/github.sh; gh_login'
+  [ "$output" == "gh-user" ]
+  run env -u GH_TOKEN -u GITHUB_TOKEN "PATH=$d:/usr/bin:/bin" "alfred_workflow_data=$data" "GH_TOKEN_COMMAND=echo t" /bin/bash -c '. src/github.sh; gh_login'
+  [ "$output" == "cmd-user" ]
+}
