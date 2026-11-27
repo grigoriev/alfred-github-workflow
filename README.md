@@ -33,7 +33,7 @@ profile. That shaped a few choices:
 ## Requirements
 
 - [Alfred](https://www.alfredapp.com/) with the Powerpack.
-- The [`gh` CLI](https://cli.github.com/), authenticated (`gh auth login`).
+- The [`gh` CLI](https://cli.github.com/), authenticated (`gh auth login`), or a token command (see below).
 - `jq` (preinstalled on macOS 12+, or `brew install jq`).
 
 ## Install
@@ -98,6 +98,21 @@ Each organization has a visible-repositories file in `<workflow data>/visible/`.
 An uncommented `owner/repo` line shows the repo; a commented or deleted line
 hides it. New repos in an organization are added commented, so they never appear
 without review. Edit these files with `gh > hidden`.
+
+### Token from a password manager
+
+Instead of `gh auth login` you can keep the token in a password manager. Set
+**Token command** in the workflow configuration to a command that prints the
+token. Use full paths, because Alfred runs with a minimal `PATH`:
+
+```text
+/opt/homebrew/bin/op read op://Private/GitHub/token
+```
+
+The workflow runs it only before a call to GitHub and passes the output to `gh`
+as `GH_TOKEN`. The token is never written to disk. An existing `GH_TOKEN` or
+`GITHUB_TOKEN` in the environment takes precedence. Each refresh then waits for
+the command, about 0.7 s for a 1Password service account.
 
 ## Caching
 

@@ -238,7 +238,7 @@ render_repos() {
     if gh_authed; then
       add_result "" "" "No repositories found" "$empty" "$ICON_REPO" "no"
     else
-      add_result "" "auth login" "Not signed in to GitHub" "Press enter to run gh auth login in a terminal" "$ICON_LOGIN" "yes"
+      add_result "" "auth login" "Not signed in to GitHub" "Press enter to run gh auth login, or set the Token command in the workflow configuration" "$ICON_LOGIN" "yes"
     fi
     [[ "$stale" -eq 1 ]] && set_rerun 0.5
     get_json_results

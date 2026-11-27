@@ -23,29 +23,44 @@ gh_bin() {
   return 0
 }
 
+# Run gh with the given arguments. When neither GH_TOKEN nor GITHUB_TOKEN is set
+# and the GH_TOKEN_COMMAND workflow setting is, run that command first and hand
+# its output to gh as GH_TOKEN, for example a 1Password "op read" call. The token
+# reaches only this gh process and is never written to disk.
+gh_run() {
+  local gh token
+  gh="$(gh_bin)"
+  [[ -n "$gh" ]] || return 127
+  if [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" && -n "${GH_TOKEN_COMMAND:-}" ]]; then
+    token="$(/bin/bash -c "$GH_TOKEN_COMMAND" 2>/dev/null)" || token=""
+    if [[ -n "$token" ]]; then
+      GH_TOKEN="$token" "$gh" "$@"
+      return $?
+    fi
+  fi
+  "$gh" "$@"
+  return $?
+}
+
 # Succeed when gh is installed and authenticated.
 gh_authed() {
-  local gh
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || return 1
-  "$gh" auth status >/dev/null 2>&1
+  [[ -n "$(gh_bin)" ]] || return 1
+  gh_run auth status >/dev/null 2>&1
+  return $?
 }
 
 # Call the GitHub REST API through gh. Prints the raw response, empty on failure.
 gh_api() {
-  local gh
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || return 0
-  "$gh" api "$@" 2>/dev/null
+  [[ -n "$(gh_bin)" ]] || return 0
+  gh_run api "$@" 2>/dev/null
   return 0
 }
 
 # Print an org's repositories as a JSON array. Empty array on any failure.
 gh_repo_list() {
-  local org="$1" gh
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || { printf '[]'; return 0; }
-  "$gh" repo list "$org" --limit 1000 --no-archived \
+  local org="$1"
+  [[ -n "$(gh_bin)" ]] || { printf '[]'; return 0; }
+  gh_run repo list "$org" --limit 1000 --no-archived \
     --json nameWithOwner,name,description,isPrivate,pushedAt,url,owner 2>/dev/null \
     || printf '[]'
   return 0
@@ -53,25 +68,22 @@ gh_repo_list() {
 
 # Print the authenticated user's starred repositories as GitHub API JSON.
 gh_starred() {
-  local gh
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || { printf '[]'; return 0; }
-  "$gh" api user/starred --paginate 2>/dev/null || printf '[]'
+  [[ -n "$(gh_bin)" ]] || { printf '[]'; return 0; }
+  gh_run api user/starred --paginate 2>/dev/null || printf '[]'
   return 0
 }
 
 # Print the authenticated user's login, cached in the data dir after the first
 # lookup so the "My" pages resolve without a network call every time.
 gh_login() {
-  local file gh login
+  local file login
   file="${alfred_workflow_data:-.}/login"
   if [[ -s "$file" ]]; then
     cat "$file"
     return 0
   fi
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || return 0
-  login="$("$gh" api user --jq .login 2>/dev/null)"
+  [[ -n "$(gh_bin)" ]] || return 0
+  login="$(gh_run api user --jq .login 2>/dev/null)"
   [[ -n "$login" ]] || return 0
   mkdir -p "${alfred_workflow_data:-.}"
   printf '%s' "$login" > "$file"
@@ -90,10 +102,9 @@ cached_account_type() {
 
 # Look up an account's type and cache it. Called during the database rebuild.
 cache_account_type() {
-  local name="$1" gh type dir
-  gh="$(gh_bin)"
-  [[ -n "$gh" ]] || return 0
-  type="$("$gh" api "users/$name" --jq .type 2>/dev/null)"
+  local name="$1" type dir
+  [[ -n "$(gh_bin)" ]] || return 0
+  type="$(gh_run api "users/$name" --jq .type 2>/dev/null)"
   [[ -n "$type" ]] || return 0
   dir="${alfred_workflow_data:-.}/types"
   mkdir -p "$dir"
