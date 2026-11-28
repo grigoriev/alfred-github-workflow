@@ -9,6 +9,8 @@ Releases before 2.0.1 are listed on the
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-28
+
 ### Added
 
 - Token command setting: a command that prints a GitHub token, for example
