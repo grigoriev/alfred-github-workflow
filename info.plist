@@ -194,7 +194,29 @@
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
-	<array/>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string>/opt/homebrew/bin/op read op://Private/GitHub/token</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Optional. A command that prints a GitHub token, for example a 1Password op read call. Use full paths: Alfred runs with a minimal PATH. Used when neither GH_TOKEN nor GITHUB_TOKEN is set; it then takes precedence over a gh login. The token is never stored.</string>
+			<key>label</key>
+			<string>Token command</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>GH_TOKEN_COMMAND</string>
+		</dict>
+	</array>
 	<key>variables</key>
 	<dict>
 		<key>update_asset</key>

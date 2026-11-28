@@ -9,6 +9,12 @@ Releases before 2.0.1 are listed on the
 
 ## [Unreleased]
 
+### Added
+
+- Token command setting: a command that prints a GitHub token, for example
+  `op read` from 1Password. The workflow passes it to `gh` as `GH_TOKEN` before
+  each call to GitHub and never stores it.
+
 ## [2.1.0] - 2026-10-09
 
 ### Added
